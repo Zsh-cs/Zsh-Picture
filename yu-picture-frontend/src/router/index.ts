@@ -16,7 +16,6 @@ import SpaceAnalyzePage from '@/pages/SpaceAnalyzePage.vue'
 import SpaceUserManagePage from '@/pages/admin/SpaceUserManagePage.vue'
 import UserExchangeVipPage from '@/pages/UserExchangeVipPage.vue'
 
-// @author 程序员鱼皮 <a href="https://www.codefather.cn">编程导航原创项目</a>
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
@@ -102,16 +101,8 @@ const router = createRouter({
       path: '/user_exchange_vip',
       name: '用户兑换会员',
       component: UserExchangeVipPage,
-    },
-    {
-      path: '/about',
-      name: 'about',
-      // route level code-splitting
-      // this generates a separate chunk (About.[hash].js) for this route
-      // which is lazy-loaded when the route is visited.
-      component: () => import('../views/AboutView.vue'),
-    },
-  ],
+    }
+  ]
 })
 
 export default router
