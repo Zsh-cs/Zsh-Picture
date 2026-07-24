@@ -699,6 +699,7 @@ declare namespace API {
 
   type UserUpdateRequest = {
     id?: number
+    userAccount?: string
     userAvatar?: string
     userName?: string
     userProfile?: string
