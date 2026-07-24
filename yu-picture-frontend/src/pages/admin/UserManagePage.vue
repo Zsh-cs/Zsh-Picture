@@ -36,7 +36,7 @@
           {{ dayjs(record.createTime).format('YYYY-MM-DD HH:mm:ss') }}
         </template>
         <template v-else-if="column.key === 'action'">
-          <a-button danger @click="doDelete(record.id)">删除</a-button>
+          <a-button danger @click="doDeleteConfirm(record.id)">删除</a-button>
         </template>
       </template>
     </a-table>
@@ -45,13 +45,14 @@
 <script lang="ts" setup>
 import { computed, onMounted, reactive, ref } from 'vue'
 import { deleteUserUsingPost, listUserVoByPageUsingPost } from '@/api/userController.ts'
-import { message } from 'ant-design-vue'
+import { Modal, message } from 'ant-design-vue'
 import dayjs from 'dayjs'
 
 const columns = [
   {
     title: 'id',
     dataIndex: 'id',
+    width: 200,
   },
   {
     title: '账号',
@@ -151,5 +152,20 @@ const doDelete = async (id: string) => {
   } else {
     message.error('删除失败')
   }
+}
+
+const doDeleteConfirm = (id: string) => {
+  Modal.confirm({
+    title: '确认删除该用户？',
+    content: '删除后将无法恢复，请确认是否继续。',
+    okText: '确认删除',
+    cancelText: '取消',
+    okButtonProps: {
+      danger: true,
+    },
+    onOk: async () => {
+      await doDelete(id)
+    },
+  })
 }
 </script>
