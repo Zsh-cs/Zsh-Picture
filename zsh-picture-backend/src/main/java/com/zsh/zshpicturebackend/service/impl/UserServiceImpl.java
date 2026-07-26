@@ -110,7 +110,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
 
     // 获取当前登录的用户
     @Override
-    public LoginUserVO getLoginUser(HttpServletRequest request) {
+    public User getLoginUser(HttpServletRequest request) {
         // 判断是否已经登录
         Object userObj = request.getSession().getAttribute(UserConstant.USER_LOGIN_STATE);
         User currentUser = (User) userObj;
@@ -122,7 +122,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         if(currentUser==null){
             throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR,"该用户已注销");
         }
-        return getLoginUserVO(currentUser);
+        return currentUser;
     }
 
     // 用户退出登录
@@ -193,7 +193,8 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
     }
 
     // 对用户信息进行脱敏
-    private LoginUserVO getLoginUserVO(User user) {
+    @Override
+    public LoginUserVO getLoginUserVO(User user) {
         if (user == null) {
             return null;
         }

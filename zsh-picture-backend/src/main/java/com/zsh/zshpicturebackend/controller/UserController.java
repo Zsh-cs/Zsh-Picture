@@ -11,7 +11,6 @@ import com.zsh.zshpicturebackend.exception.BusinessException;
 import com.zsh.zshpicturebackend.exception.ErrorCode;
 import com.zsh.zshpicturebackend.model.dto.user.*;
 import com.zsh.zshpicturebackend.model.entity.User;
-import com.zsh.zshpicturebackend.model.enums.UserRoleEnum;
 import com.zsh.zshpicturebackend.model.vo.LoginUserVO;
 import com.zsh.zshpicturebackend.model.vo.UserVO;
 import com.zsh.zshpicturebackend.service.UserService;
@@ -59,9 +58,10 @@ public class UserController {
 
     // 获取当前登录的用户
     @GetMapping("/get/login")
-    public BaseResponse<LoginUserVO> getLoginUser(HttpServletRequest request) {
-        LoginUserVO loginUser = userService.getLoginUser(request);
-        return ResultUtils.success(loginUser);
+    public BaseResponse<LoginUserVO> getLoginUserVO(HttpServletRequest request) {
+        User loginUser = userService.getLoginUser(request);
+        LoginUserVO loginUserVO = userService.getLoginUserVO(loginUser);
+        return ResultUtils.success(loginUserVO);
     }
 
     // 用户退出登录

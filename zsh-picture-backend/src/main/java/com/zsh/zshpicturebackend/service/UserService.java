@@ -24,7 +24,7 @@ public interface UserService extends IService<User> {
     LoginUserVO userLogin(String userAccount, String userPassword, HttpServletRequest request);
 
     // 获取当前登录的用户
-    LoginUserVO getLoginUser(HttpServletRequest request);
+    User getLoginUser(HttpServletRequest request);
 
     // 用户退出登录
     boolean userLogout(HttpServletRequest request);
@@ -40,4 +40,7 @@ public interface UserService extends IService<User> {
 
     // 将查询请求转换为QueryWrapper对象
     QueryWrapper<User> getQueryWrapper(UserQueryRequest request);
+
+    // 对用户信息进行脱敏
+    LoginUserVO getLoginUserVO(User user);
 }

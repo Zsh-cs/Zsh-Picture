@@ -3,6 +3,7 @@ package com.zsh.zshpicturebackend.aop;
 import com.zsh.zshpicturebackend.annotation.AuthCheck;
 import com.zsh.zshpicturebackend.exception.BusinessException;
 import com.zsh.zshpicturebackend.exception.ErrorCode;
+import com.zsh.zshpicturebackend.model.entity.User;
 import com.zsh.zshpicturebackend.model.enums.UserRoleEnum;
 import com.zsh.zshpicturebackend.model.vo.LoginUserVO;
 import com.zsh.zshpicturebackend.service.UserService;
@@ -31,7 +32,7 @@ public class AuthInterceptor {
 
         // 获取当前登录用户，如果未登录会直接抛异常（在getLoginUser()方法里写了）
         HttpServletRequest request = ((ServletRequestAttributes) RequestContextHolder.currentRequestAttributes()).getRequest();
-        LoginUserVO loginUser = userService.getLoginUser(request);
+        User loginUser = userService.getLoginUser(request);
 
         UserRoleEnum mustRoleEnum = UserRoleEnum.getEnumByValue(authCheck.mustRole());
         // 如果不需要权限，直接放行
