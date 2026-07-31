@@ -1,16 +1,15 @@
-package com.zsh.zshpicturebackend.model.vo;
+package com.zsh.zshpicturebackend.model.dto.picture;
 
-import cn.hutool.json.JSONUtil;
-import com.zsh.zshpicturebackend.model.entity.Picture;
+import com.zsh.zshpicturebackend.common.PageRequest;
 import lombok.Data;
-import org.springframework.beans.BeanUtils;
+import lombok.EqualsAndHashCode;
 
 import java.io.Serializable;
-import java.util.Date;
 import java.util.List;
 
+@EqualsAndHashCode(callSuper = true)
 @Data
-public class PictureVO implements Serializable {
+public class PictureQueryRequest extends PageRequest implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
@@ -18,11 +17,6 @@ public class PictureVO implements Serializable {
      * id
      */
     private Long id;
-
-    /**
-     * 图片url
-     */
-    private String url;
 
     /**
      * 图片名称
@@ -60,7 +54,7 @@ public class PictureVO implements Serializable {
     private Integer picHeight;
 
     /**
-     * 图片宽高比例
+     * 图片比例
      */
     private Double picScale;
 
@@ -70,28 +64,13 @@ public class PictureVO implements Serializable {
     private String picFormat;
 
     /**
-     * 创建用户id
+     * 搜索词（同时搜名称、简介等）
+     */
+    private String searchText;
+
+    /**
+     * 用户 id
      */
     private Long userId;
-
-    /**
-     * 创建时间
-     */
-    private Date createTime;
-
-    /**
-     * 编辑时间
-     */
-    private Date editTime;
-
-    /**
-     * 更新时间
-     */
-    private Date updateTime;
-
-    /**
-     * 创建用户信息
-     */
-    private UserVO userVO;
 
 }

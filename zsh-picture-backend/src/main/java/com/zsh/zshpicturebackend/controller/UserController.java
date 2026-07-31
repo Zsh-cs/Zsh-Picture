@@ -9,6 +9,7 @@ import com.zsh.zshpicturebackend.common.ResultUtils;
 import com.zsh.zshpicturebackend.constant.UserConstant;
 import com.zsh.zshpicturebackend.exception.BusinessException;
 import com.zsh.zshpicturebackend.exception.ErrorCode;
+import com.zsh.zshpicturebackend.exception.ThrowUtils;
 import com.zsh.zshpicturebackend.model.dto.user.*;
 import com.zsh.zshpicturebackend.model.entity.User;
 import com.zsh.zshpicturebackend.model.vo.LoginUserVO;
@@ -56,7 +57,7 @@ public class UserController {
         return ResultUtils.success(loginUserVO);
     }
 
-    // 获取当前登录的用户
+    // 获取当前登录的用户（脱敏后）
     @GetMapping("/get/login")
     public BaseResponse<LoginUserVO> getLoginUserVO(HttpServletRequest request) {
         User loginUser = userService.getLoginUser(request);
@@ -94,20 +95,18 @@ public class UserController {
     @GetMapping("/get")
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
     public BaseResponse<User> getUserById(long id){
-        if(id<=0){
-            throw new BusinessException(ErrorCode.PARAMS_ERROR,"id<=0");
-        }
+        ThrowUtils.throwIf(id<=0,ErrorCode.PARAMS_ERROR);
         User user = userService.getById(id);
-        if(user==null){
-            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR);
-        }
+        ThrowUtils.throwIf(user==null,ErrorCode.NOT_FOUND_ERROR);
         return ResultUtils.success(user);
     }
 
     // 根据id获取脱敏后的用户信息
     @GetMapping("/get/vo")
     public BaseResponse<UserVO> getUserVOById(long id){
-        User user = getUserById(id).getData();
+        ThrowUtils.throwIf(id<=0,ErrorCode.PARAMS_ERROR);
+        User user = userService.getById(id);
+        ThrowUtils.throwIf(user==null,ErrorCode.NOT_FOUND_ERROR);
         UserVO userVO = userService.getUserVO(user);
         return ResultUtils.success(userVO);
     }

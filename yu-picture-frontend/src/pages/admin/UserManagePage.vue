@@ -85,6 +85,7 @@ import {
 } from '@/api/userController.ts'
 import { Modal, message } from 'ant-design-vue'
 import dayjs from 'dayjs'
+import { ID_COLUMN_WIDTH } from '@/constants/common'
 
 const USER_ROLE_OPTIONS = [
   { label: '普通用户', value: 'user' },
@@ -95,7 +96,7 @@ const columns = [
   {
     title: 'id',
     dataIndex: 'id',
-    width: 200,
+    width: ID_COLUMN_WIDTH.NORMAL,
   },
   {
     title: '账号',
@@ -199,6 +200,7 @@ const doDelete = async (id: number) => {
   }
 }
 
+// 确认删除数据
 const doDeleteConfirm = (id: number) => {
   Modal.confirm({
     title: '确认删除该用户？',

@@ -102,7 +102,7 @@
             <a-button type="link" :href="`/add_picture?id=${record.id}`" target="_blank">
               编辑
             </a-button>
-            <a-button danger @click="doDelete(record.id)">删除</a-button>
+            <a-button danger @click="doDeleteConfirm(record.id)">删除</a-button>
           </a-space>
         </template>
       </template>
@@ -116,19 +116,20 @@ import {
   doPictureReviewUsingPost,
   listPictureByPageUsingPost,
 } from '@/api/pictureController.ts'
-import { message } from 'ant-design-vue'
+import { Modal, message } from 'ant-design-vue'
 import {
   PIC_REVIEW_STATUS_ENUM,
   PIC_REVIEW_STATUS_MAP,
   PIC_REVIEW_STATUS_OPTIONS,
 } from '../../constants/picture.ts'
 import dayjs from 'dayjs'
+import { ID_COLUMN_WIDTH } from '@/constants/common.ts'
 
 const columns = [
   {
     title: 'id',
     dataIndex: 'id',
-    width: 80,
+    width: ID_COLUMN_WIDTH.SMALL,
   },
   {
     title: '图片',
@@ -158,12 +159,12 @@ const columns = [
   {
     title: '用户 id',
     dataIndex: 'userId',
-    width: 80,
+    width: ID_COLUMN_WIDTH.SMALL,
   },
   {
     title: '空间 id',
     dataIndex: 'spaceId',
-    width: 80,
+    width: ID_COLUMN_WIDTH.SMALL,
   },
   {
     title: '审核信息',
@@ -221,7 +222,7 @@ const pagination = computed(() => {
     pageSize: searchParams.pageSize,
     total: total.value,
     showSizeChanger: true,
-    showTotal: (total) => `共 ${total} 条`,
+    showTotal: (total: number) => `共 ${total} 条`,
   }
 })
 
@@ -252,6 +253,22 @@ const doDelete = async (id: string) => {
   } else {
     message.error('删除失败')
   }
+}
+
+// 确认删除数据
+const doDeleteConfirm = (id: string) => {
+  Modal.confirm({
+    title: '确认删除该图片？',
+    content: '删除后将无法恢复，请确认是否继续。',
+    okText: '确认删除',
+    cancelText: '取消',
+    okButtonProps: {
+      danger: true,
+    },
+    onOk: async () => {
+      await doDelete(id)
+    },
+  })
 }
 
 // 审核图片

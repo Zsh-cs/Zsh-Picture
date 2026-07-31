@@ -1,5 +1,8 @@
 package com.zsh.zshpicturebackend.service;
 
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.zsh.zshpicturebackend.model.dto.picture.PictureQueryRequest;
 import com.zsh.zshpicturebackend.model.dto.picture.PictureUploadRequest;
 import com.zsh.zshpicturebackend.model.entity.Picture;
 import com.baomidou.mybatisplus.extension.service.IService;
@@ -17,4 +20,21 @@ public interface PictureService extends IService<Picture> {
     // 上传图片
     PictureVO uploadPicture(MultipartFile multipartFile, PictureUploadRequest pictureUploadRequest, User loginUser);
 
+    // Picture转PictureVO
+    PictureVO obj2vo(Picture picture);
+
+    // Picture转暂不包含UserVO的PictureVO
+    PictureVO obj2incompleteVO(Picture picture);
+
+    // PictureVO转Picture
+    Picture vo2obj(PictureVO pictureVO);
+
+    // 将查询请求转化为QueryMapper对象
+    QueryWrapper<Picture> getQueryMapper(PictureQueryRequest request);
+
+    // 分页获取PictureVO对象
+    Page<PictureVO> getPictureVOPage(Page<Picture> picturePage);
+
+    // 校验图片
+    void verifyPicture(Picture picture);
 }

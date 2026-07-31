@@ -43,4 +43,7 @@ public interface UserService extends IService<User> {
 
     // 对用户信息进行脱敏
     LoginUserVO getLoginUserVO(User user);
+
+    // 判断用户是否为管理员
+    boolean isAdmin(User user);
 }

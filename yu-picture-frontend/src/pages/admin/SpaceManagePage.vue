@@ -96,12 +96,13 @@ import {
   SPACE_TYPE_OPTIONS,
 } from '../../constants/space.ts'
 import { formatSize } from '../../utils'
+import { ID_COLUMN_WIDTH } from '@/constants/common.ts'
 
 const columns = [
   {
     title: 'id',
     dataIndex: 'id',
-    width: 80,
+    width: ID_COLUMN_WIDTH.SMALL,
   },
   {
     title: '空间名称',
@@ -122,7 +123,7 @@ const columns = [
   {
     title: '用户 id',
     dataIndex: 'userId',
-    width: 80,
+    width: ID_COLUMN_WIDTH.SMALL,
   },
   {
     title: '创建时间',

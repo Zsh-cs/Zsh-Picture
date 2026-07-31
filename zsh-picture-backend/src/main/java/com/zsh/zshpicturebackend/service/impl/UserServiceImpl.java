@@ -1,6 +1,7 @@
 package com.zsh.zshpicturebackend.service.impl;
 
 import cn.hutool.core.collection.CollUtil;
+import cn.hutool.core.util.ObjUtil;
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
@@ -183,7 +184,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         String sortOrder = request.getSortOrder();
 
         QueryWrapper<User> qw=new QueryWrapper<>();
-        qw.eq(id!=null,"id",id)
+        qw.eq(ObjUtil.isNotEmpty(id),"id",id)
                 .like(StrUtil.isNotBlank(userName),"userName",userName)
                 .like(StrUtil.isNotBlank(userAccount),"userAccount",userAccount)
                 .like(StrUtil.isNotBlank(userProfile),"userProfile",userProfile)
@@ -201,6 +202,12 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         LoginUserVO loginUserVO = new LoginUserVO();
         BeanUtils.copyProperties(user, loginUserVO);
         return loginUserVO;
+    }
+
+    // 判断用户是否为管理员
+    @Override
+    public boolean isAdmin(User user) {
+        return user != null && user.getUserRole().equals(UserRoleEnum.ADMIN.getValue());
     }
 
 
