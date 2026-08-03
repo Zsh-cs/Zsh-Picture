@@ -1,6 +1,7 @@
 package com.zsh.zshpicturebackend.model.enums;
 
 import cn.hutool.core.util.ObjUtil;
+import cn.hutool.core.util.StrUtil;
 import lombok.Getter;
 
 /**
@@ -22,7 +23,7 @@ public enum UserRoleEnum {
 
     // 根据value获取对应的枚举对象
     public static UserRoleEnum getEnumByValue(String value) {
-        if (ObjUtil.isEmpty(value)) {
+        if (StrUtil.isBlank(value)) {
             return null;
         }
         for (UserRoleEnum userRoleEnum : UserRoleEnum.values()) {

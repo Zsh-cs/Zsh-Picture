@@ -3,7 +3,8 @@ package com.zsh.zshpicturebackend.service;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.zsh.zshpicturebackend.model.dto.picture.PictureQueryRequest;
-import com.zsh.zshpicturebackend.model.dto.picture.PictureUploadRequest;
+import com.zsh.zshpicturebackend.model.dto.picture.PictureReviewRequest;
+import com.zsh.zshpicturebackend.model.dto.picture.PictureReuploadRequest;
 import com.zsh.zshpicturebackend.model.entity.Picture;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.zsh.zshpicturebackend.model.entity.User;
@@ -18,7 +19,7 @@ import org.springframework.web.multipart.MultipartFile;
 public interface PictureService extends IService<Picture> {
 
     // 上传图片
-    PictureVO uploadPicture(MultipartFile multipartFile, PictureUploadRequest pictureUploadRequest, User loginUser);
+    PictureVO uploadPicture(MultipartFile multipartFile, PictureReuploadRequest pictureReuploadRequest, User loginUser);
 
     // Picture转PictureVO
     PictureVO obj2vo(Picture picture);
@@ -37,4 +38,10 @@ public interface PictureService extends IService<Picture> {
 
     // 校验图片
     void verifyPicture(Picture picture);
+
+    // 审核图片
+    boolean reviewPicture(PictureReviewRequest pictureReviewRequest, User loginUser);
+
+    // 填充审核参数
+    void fillReviewParams(Picture picture, User loginUser);
 }

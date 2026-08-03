@@ -13,9 +13,11 @@ import com.zsh.zshpicturebackend.exception.ThrowUtils;
 import com.zsh.zshpicturebackend.manager.FileManager;
 import com.zsh.zshpicturebackend.model.dto.file.PictureUploadResult;
 import com.zsh.zshpicturebackend.model.dto.picture.PictureQueryRequest;
-import com.zsh.zshpicturebackend.model.dto.picture.PictureUploadRequest;
+import com.zsh.zshpicturebackend.model.dto.picture.PictureReviewRequest;
+import com.zsh.zshpicturebackend.model.dto.picture.PictureReuploadRequest;
 import com.zsh.zshpicturebackend.model.entity.Picture;
 import com.zsh.zshpicturebackend.model.entity.User;
+import com.zsh.zshpicturebackend.model.enums.PictureReviewStatusEnum;
 import com.zsh.zshpicturebackend.model.vo.PictureVO;
 import com.zsh.zshpicturebackend.model.vo.UserVO;
 import com.zsh.zshpicturebackend.service.PictureService;
@@ -45,37 +47,40 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
 
     // 上传图片
     @Override
-    public PictureVO uploadPicture(MultipartFile multipartFile, PictureUploadRequest pictureUploadRequest, User loginUser) {
-        if(loginUser==null){
-            throw new BusinessException(ErrorCode.NO_AUTH_ERROR,"未登录用户不可以上传图片");
-        }
+    public PictureVO uploadPicture(MultipartFile multipartFile, PictureReuploadRequest pictureReuploadRequest, User loginUser) {
+        ThrowUtils.throwIf(loginUser==null,ErrorCode.NO_AUTH_ERROR,"未登录用户不可以上传图片");
 
-        // 默认是新增图片，所以pictureId为空
         Long pictureId=null;
-        if(pictureUploadRequest!=null){
-            pictureId=pictureUploadRequest.getId();
+        // 若图片重新上传请求不为空，则重新赋值pictureId
+        if(pictureReuploadRequest !=null){
+            pictureId= pictureReuploadRequest.getPictureId();
         }
         // 如果是更新图片，要去数据库查询pictureId对应的图片是否存在
-        if(pictureId!=null && !this.lambdaQuery().eq(Picture::getId,pictureId).exists()){
-            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR,"对应的图片不存在");
+        if(pictureId!=null){
+            Picture oldPicture = this.getById(pictureId);
+            ThrowUtils.throwIf(oldPicture==null,ErrorCode.NOT_FOUND_ERROR);
+            // 图片存在，则只能允许本人或管理员更新
+            if(!oldPicture.getUserId().equals(loginUser.getId()) || !userService.isAdmin(loginUser)){
+                throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
+            }
         }
-        // 上传图片，先上传到公共空间，路径前缀为public/用户id，这样可以区分不同用户上传的图片
+        // 上传图片：暂时先上传到公共空间，路径前缀为public/用户id，这样可以区分不同用户上传的图片
         PictureUploadResult pictureUploadResult = fileManager.uploadPicture(multipartFile, String.format("public/%s", loginUser.getId()));
 
         // 操作数据库
         Picture picture=new Picture();
         BeanUtils.copyProperties(pictureUploadResult,picture);
         picture.setUserId(loginUser.getId());
-        // 如果是更新图片，需要补充id和编辑时间
+        // 填充审核参数
+        fillReviewParams(picture,loginUser);
+        // 如果是更新图片，需要补充pictureId和编辑时间
         if(pictureId!=null){
             picture.setId(pictureId);
             picture.setEditTime(new Date());
         }
         // 根据图片id进行判断，存在则更新图片，否则新增图片
         boolean res = this.saveOrUpdate(picture);
-        if(!res){
-            throw new BusinessException(ErrorCode.OPERATION_ERROR);
-        }
+        ThrowUtils.throwIf(!res,ErrorCode.OPERATION_ERROR);
 
         // 获取新增或更新后数据库中的图片对象，因为它包含了createTime、editTime、updateTime
         Picture pictureInDB = this.getById(picture.getId());// 主键回填
@@ -138,6 +143,9 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         String picFormat = request.getPicFormat();
         String searchText = request.getSearchText();
         Long userId = request.getUserId();
+        Integer reviewStatus = request.getReviewStatus();
+        String reviewMessage = request.getReviewMessage();
+        Long reviewerId = request.getReviewerId();
         String sortField = request.getSortField();
         String sortOrder = request.getSortOrder();
 
@@ -164,6 +172,9 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
             qw.and(i->i.like("name",searchText).or().like("introduction",searchText));
         }
         qw.eq(ObjUtil.isNotEmpty(userId),"userId",userId)
+                .eq(ObjUtil.isNotEmpty(reviewStatus),"reviewStatus",reviewStatus)
+                .eq(StrUtil.isNotBlank(reviewMessage),"reviewMessage",reviewMessage)
+                .eq(ObjUtil.isNotEmpty(reviewerId),"reviewId",reviewerId)
                 .orderBy(StrUtil.isNotBlank(sortField),sortOrder.equals("ascend"),sortField);
 
         return qw;
@@ -218,6 +229,51 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         String introduction = picture.getIntroduction();
         if(StrUtil.isNotBlank(introduction) && introduction.length()>800){
             throw new BusinessException(ErrorCode.PARAMS_ERROR,"图片简介过多");
+        }
+    }
+
+    // 审核图片
+    @Override
+    public boolean reviewPicture(PictureReviewRequest pictureReviewRequest, User loginUser) {
+        // 1.校验参数，审核状态不能为“待审核”（因为“待审核”就相当于没有进行审核操作）
+        Long id = pictureReviewRequest.getId();
+        Integer reviewStatus = pictureReviewRequest.getReviewStatus();
+        PictureReviewStatusEnum reviewStatusEnum = PictureReviewStatusEnum.getEnumByValue(reviewStatus);
+        if(id == null || reviewStatusEnum==null || PictureReviewStatusEnum.PENDING_REVIEW.equals(reviewStatusEnum)){
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+        // 2.判断图片是否存在
+        Picture picture = this.getById(id);
+        ThrowUtils.throwIf(picture==null,ErrorCode.NOT_FOUND_ERROR);
+        // 3.避免重复审核
+        if(reviewStatus.equals(picture.getReviewStatus())){
+            throw new BusinessException(ErrorCode.PARAMS_ERROR,"该图片已经审核过了");
+        }
+        // 4.更新审核状态
+        Picture pictureAfterReview=new Picture();
+        BeanUtils.copyProperties(pictureReviewRequest,pictureAfterReview);
+        pictureAfterReview.setReviewerId(loginUser.getId());
+        pictureAfterReview.setReviewTime(new Date());
+        return this.updateById(pictureAfterReview);
+    }
+
+    /**
+     * 填充审核参数
+     * 1.管理员上传或更新图片时，自动过审并且填充审核参数
+     * 2.用户上传或编辑图片时，图片状态一律重置为“待审核”
+     *
+     * @param picture   上传/用户编辑/管理员更新的图片
+     * @param loginUser 当前登录的用户
+     */
+    @Override
+    public void fillReviewParams(Picture picture, User loginUser) {
+        if(userService.isAdmin(loginUser)){
+            picture.setReviewStatus(PictureReviewStatusEnum.PASS.getValue());
+            picture.setReviewMessage("管理员自动过审");
+            picture.setReviewerId(loginUser.getId());
+            picture.setReviewTime(new Date());
+        } else{
+            picture.setReviewStatus(PictureReviewStatusEnum.PENDING_REVIEW.getValue());
         }
     }
 
