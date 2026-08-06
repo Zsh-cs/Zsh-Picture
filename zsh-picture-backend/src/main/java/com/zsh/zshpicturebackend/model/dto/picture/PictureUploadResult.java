@@ -1,4 +1,4 @@
-package com.zsh.zshpicturebackend.model.dto.file;
+package com.zsh.zshpicturebackend.model.dto.picture;
 
 import lombok.Data;
 

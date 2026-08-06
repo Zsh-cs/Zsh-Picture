@@ -38,13 +38,24 @@ public class PictureController {
     @Autowired
     private UserService userService;
 
-    // 上传图片（可以重新上传：基础信息不变，只改变图片文件）
+    // 上传本地图片（可以重新上传：基础信息不变，只改变图片文件）
     @PostMapping("/upload")
-    public BaseResponse<PictureVO> uploadPicture(@RequestPart("file") MultipartFile multipartFile,
-                                                 PictureReuploadRequest pictureReuploadRequest,
-                                                 HttpServletRequest request) {
+    public BaseResponse<PictureVO> uploadLocalPicture(@RequestPart("file") MultipartFile multipartFile,
+                                                      PictureUploadRequest pictureUploadRequest,
+                                                      HttpServletRequest request) {
         User loginUser = userService.getLoginUser(request);
-        PictureVO pictureVO = pictureService.uploadPicture(multipartFile, pictureReuploadRequest, loginUser);
+        PictureVO pictureVO = pictureService.uploadPicture(multipartFile, pictureUploadRequest, loginUser);
+        return ResultUtils.success(pictureVO);
+    }
+
+    // 上传url图片（可以重新上传：基础信息不变，只改变图片文件）
+    @PostMapping("/upload/url")
+    public BaseResponse<PictureVO> uploadUrlPicture(@RequestBody PictureUploadRequest pictureUploadRequest,
+                                                    HttpServletRequest request){
+        ThrowUtils.throwIf(pictureUploadRequest==null,ErrorCode.PARAMS_ERROR);
+        User loginUser = userService.getLoginUser(request);
+        String url = pictureUploadRequest.getFileUrl();
+        PictureVO pictureVO = pictureService.uploadPicture(url, pictureUploadRequest, loginUser);
         return ResultUtils.success(pictureVO);
     }
 

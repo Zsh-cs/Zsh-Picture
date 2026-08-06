@@ -10,11 +10,13 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.zsh.zshpicturebackend.exception.BusinessException;
 import com.zsh.zshpicturebackend.exception.ErrorCode;
 import com.zsh.zshpicturebackend.exception.ThrowUtils;
-import com.zsh.zshpicturebackend.manager.FileManager;
-import com.zsh.zshpicturebackend.model.dto.file.PictureUploadResult;
+import com.zsh.zshpicturebackend.manager.LocalPictureManager;
+import com.zsh.zshpicturebackend.manager.PictureManager;
+import com.zsh.zshpicturebackend.manager.UrlPictureManager;
+import com.zsh.zshpicturebackend.model.dto.picture.PictureUploadResult;
 import com.zsh.zshpicturebackend.model.dto.picture.PictureQueryRequest;
 import com.zsh.zshpicturebackend.model.dto.picture.PictureReviewRequest;
-import com.zsh.zshpicturebackend.model.dto.picture.PictureReuploadRequest;
+import com.zsh.zshpicturebackend.model.dto.picture.PictureUploadRequest;
 import com.zsh.zshpicturebackend.model.entity.Picture;
 import com.zsh.zshpicturebackend.model.entity.User;
 import com.zsh.zshpicturebackend.model.enums.PictureReviewStatusEnum;
@@ -26,7 +28,6 @@ import com.zsh.zshpicturebackend.service.UserService;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -41,19 +42,22 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         implements PictureService {
 
     @Autowired
-    private FileManager fileManager;
+    private LocalPictureManager localPictureManager;
+    @Autowired
+    private UrlPictureManager urlPictureManager;
     @Autowired
     private UserService userService;
 
-    // 上传图片
+    // 上传图片（本地图片或url图片）
     @Override
-    public PictureVO uploadPicture(MultipartFile multipartFile, PictureReuploadRequest pictureReuploadRequest, User loginUser) {
+    public PictureVO uploadPicture(Object inputSource, PictureUploadRequest pictureUploadRequest, User loginUser) {
         ThrowUtils.throwIf(loginUser==null,ErrorCode.NO_AUTH_ERROR,"未登录用户不可以上传图片");
 
+        // 默认是新增图片，所以pictureId为空
         Long pictureId=null;
-        // 若图片重新上传请求不为空，则重新赋值pictureId
-        if(pictureReuploadRequest !=null){
-            pictureId= pictureReuploadRequest.getPictureId();
+        // 若图片上传请求不为空，则是更新图片，需要为pictureId赋值
+        if(pictureUploadRequest !=null){
+            pictureId= pictureUploadRequest.getId();
         }
         // 如果是更新图片，要去数据库查询pictureId对应的图片是否存在
         if(pictureId!=null){
@@ -64,8 +68,16 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
                 throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
             }
         }
-        // 上传图片：暂时先上传到公共空间，路径前缀为public/用户id，这样可以区分不同用户上传的图片
-        PictureUploadResult pictureUploadResult = fileManager.uploadPicture(multipartFile, String.format("public/%s", loginUser.getId()));
+
+        // 上传图片
+        // 目前先上传到公共空间，路径前缀为public/用户id，这样可以区分不同用户上传的图片
+        String uploadPathPrefix=String.format("public/%s",loginUser.getId());
+        // 根据输入源的类型调用不同的Manager上传图片
+        PictureManager pictureManager=localPictureManager;
+        if(inputSource instanceof String){
+            pictureManager=urlPictureManager;
+        }
+        PictureUploadResult pictureUploadResult = pictureManager.uploadPicture(inputSource, uploadPathPrefix);
 
         // 操作数据库
         Picture picture=new Picture();

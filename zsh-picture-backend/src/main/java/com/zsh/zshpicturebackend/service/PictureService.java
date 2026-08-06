@@ -4,12 +4,11 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.zsh.zshpicturebackend.model.dto.picture.PictureQueryRequest;
 import com.zsh.zshpicturebackend.model.dto.picture.PictureReviewRequest;
-import com.zsh.zshpicturebackend.model.dto.picture.PictureReuploadRequest;
+import com.zsh.zshpicturebackend.model.dto.picture.PictureUploadRequest;
 import com.zsh.zshpicturebackend.model.entity.Picture;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.zsh.zshpicturebackend.model.entity.User;
 import com.zsh.zshpicturebackend.model.vo.PictureVO;
-import org.springframework.web.multipart.MultipartFile;
 
 /**
  * @author asus
@@ -18,8 +17,8 @@ import org.springframework.web.multipart.MultipartFile;
  */
 public interface PictureService extends IService<Picture> {
 
-    // 上传图片
-    PictureVO uploadPicture(MultipartFile multipartFile, PictureReuploadRequest pictureReuploadRequest, User loginUser);
+    // 上传图片（本地图片或url图片）
+    PictureVO uploadPicture(Object inputSource, PictureUploadRequest pictureUploadRequest, User loginUser);
 
     // Picture转PictureVO
     PictureVO obj2vo(Picture picture);
