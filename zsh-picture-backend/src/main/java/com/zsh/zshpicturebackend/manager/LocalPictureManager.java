@@ -14,8 +14,10 @@ import java.util.List;
 @Service
 public class LocalPictureManager extends PictureManager{
 
+    private static final List<String> ALLOW_SUFFIX = Arrays.asList("jpg", "jpeg", "png", "webp");
+
     @Override
-    protected void verify(Object inputSource) {
+    protected String verify(Object inputSource) {
         MultipartFile localPicture=(MultipartFile) inputSource;
         ThrowUtils.throwIf(localPicture==null, ErrorCode.PARAMS_ERROR,"图片为空");
         // 图片大小不能超过2MB
@@ -27,6 +29,7 @@ public class LocalPictureManager extends PictureManager{
         if (!ALLOW_SUFFIX.contains(suffix)) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "图片后缀不在允许的列表内");
         }
+        return suffix;
     }
 
     @Override

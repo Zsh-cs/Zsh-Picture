@@ -31,23 +31,23 @@ public abstract class PictureManager {
     @Autowired
     private CosClientConfig cosClientConfig;
 
-    public static final List<String> ALLOW_SUFFIX = Arrays.asList("jpg", "jpeg", "png", "webp");
-
     public final PictureUploadResult uploadPicture(Object inputSource, String uploadPathPrefix){
-        // 1.校验输入源（本地图片或url图片）
-        verify(inputSource);
+        // 1.校验输入源（本地图片或url图片），返回图片后缀
+        String suffix = verify(inputSource);
 
         // 2.生成图片上传地址
         String uuid= RandomUtil.randomString(16);
         String originalPictureName=getOriginalPictureName(inputSource);
-        String uploadPictureName=String.format("%s_%s.%s",
-                DateUtil.formatDate(new Date()),uuid, FileUtil.getSuffix(originalPictureName));
+        if(suffix.isEmpty()){
+            suffix=FileUtil.getSuffix(originalPictureName);
+        }
+        String uploadPictureName=String.format("%s_%s.%s", DateUtil.formatDate(new Date()),uuid, suffix);
         String uploadPath=String.format("/%s/%s",uploadPathPrefix,uploadPictureName);
 
         File tempFile=null;
         try{
             // 3.创建临时文件
-            tempFile=File.createTempFile("cos_upload",null);
+            tempFile=File.createTempFile("cos_upload_",null);
             // 4.将要上传的图片转移到临时文件中
             transferToTempFile(inputSource,tempFile);
             // 5.将临时文件上传到COS
@@ -75,8 +75,8 @@ public abstract class PictureManager {
         }
     }
 
-    // 校验输入源（本地图片或url图片）
-    protected abstract void verify(Object inputSource);
+    // 校验输入源（本地图片或url图片），返回图片后缀
+    protected abstract String verify(Object inputSource);
 
     // 获取原始图片名
     protected abstract String getOriginalPictureName(Object inputSource);

@@ -33,6 +33,9 @@ import java.util.List;
 @RequestMapping("/picture")
 public class PictureController {
 
+    public static final List<String> TAG_LIST = Arrays.asList("热门", "搞笑", "生活", "高清", "校园", "创意");
+    public static final List<String> CATEGORY_LIST = Arrays.asList("摄影", "艺术", "影视", "游戏", "动漫", "表情包");
+
     @Autowired
     private PictureService pictureService;
     @Autowired
@@ -191,10 +194,9 @@ public class PictureController {
     @GetMapping("/tag_category")
     public BaseResponse<PictureTagCategory> getPictureTagCategory() {
         PictureTagCategory ptg = new PictureTagCategory();
-        List<String> tagList = Arrays.asList("热门", "搞笑", "生活", "高清", "校园", "创意");
-        List<String> categoryList = Arrays.asList("摄影", "艺术", "影视", "游戏", "动漫", "表情包");
-        ptg.setTagList(tagList);
-        ptg.setCategoryList(categoryList);
+
+        ptg.setTagList(TAG_LIST);
+        ptg.setCategoryList(CATEGORY_LIST);
         return ResultUtils.success(ptg);
     }
 
