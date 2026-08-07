@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.zsh.zshpicturebackend.model.dto.picture.PictureQueryRequest;
 import com.zsh.zshpicturebackend.model.dto.picture.PictureReviewRequest;
+import com.zsh.zshpicturebackend.model.dto.picture.PictureUploadByBatchRequest;
 import com.zsh.zshpicturebackend.model.dto.picture.PictureUploadRequest;
 import com.zsh.zshpicturebackend.model.entity.Picture;
 import com.baomidou.mybatisplus.extension.service.IService;
@@ -43,4 +44,8 @@ public interface PictureService extends IService<Picture> {
 
     // 填充审核参数
     void fillReviewParams(Picture picture, User loginUser);
+
+    // 批量抓取和上传url图片，返回成功上传的图片数
+    int uploadUrlPictureByBatch(PictureUploadByBatchRequest pictureUploadByBatchRequest, User loginUser);
+
 }

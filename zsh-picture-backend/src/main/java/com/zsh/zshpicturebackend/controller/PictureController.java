@@ -19,6 +19,7 @@ import com.zsh.zshpicturebackend.model.vo.PictureTagCategory;
 import com.zsh.zshpicturebackend.model.vo.PictureVO;
 import com.zsh.zshpicturebackend.service.PictureService;
 import com.zsh.zshpicturebackend.service.UserService;
+import io.swagger.models.auth.In;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -211,4 +212,16 @@ public class PictureController {
         ThrowUtils.throwIf(!res,ErrorCode.OPERATION_ERROR,"审核失败");
         return ResultUtils.success(true);
     }
+
+    // 批量抓取并上传url图片（仅管理员可用），返回成功上传的图片数
+    @PostMapping("/upload/batch")
+    @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
+    public BaseResponse<Integer> uploadUrlPictureByBatch(@RequestBody PictureUploadByBatchRequest pictureUploadByBatchRequest,
+                                                         HttpServletRequest request){
+        ThrowUtils.throwIf(pictureUploadByBatchRequest==null,ErrorCode.PARAMS_ERROR);
+        User loginUser = userService.getLoginUser(request);
+        int uploadCount = pictureService.uploadUrlPictureByBatch(pictureUploadByBatchRequest, loginUser);
+        return ResultUtils.success(uploadCount);
+    }
+
 }

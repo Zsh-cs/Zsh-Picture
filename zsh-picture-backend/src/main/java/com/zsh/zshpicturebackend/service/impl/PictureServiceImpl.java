@@ -13,10 +13,7 @@ import com.zsh.zshpicturebackend.exception.ThrowUtils;
 import com.zsh.zshpicturebackend.manager.LocalPictureManager;
 import com.zsh.zshpicturebackend.manager.PictureManager;
 import com.zsh.zshpicturebackend.manager.UrlPictureManager;
-import com.zsh.zshpicturebackend.model.dto.picture.PictureUploadResult;
-import com.zsh.zshpicturebackend.model.dto.picture.PictureQueryRequest;
-import com.zsh.zshpicturebackend.model.dto.picture.PictureReviewRequest;
-import com.zsh.zshpicturebackend.model.dto.picture.PictureUploadRequest;
+import com.zsh.zshpicturebackend.model.dto.picture.*;
 import com.zsh.zshpicturebackend.model.entity.Picture;
 import com.zsh.zshpicturebackend.model.entity.User;
 import com.zsh.zshpicturebackend.model.enums.PictureReviewStatusEnum;
@@ -25,10 +22,17 @@ import com.zsh.zshpicturebackend.model.vo.UserVO;
 import com.zsh.zshpicturebackend.service.PictureService;
 import com.zsh.zshpicturebackend.mapper.PictureMapper;
 import com.zsh.zshpicturebackend.service.UserService;
+import lombok.extern.slf4j.Slf4j;
+import org.jsoup.Connection;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
+import org.jsoup.select.Elements;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -38,6 +42,7 @@ import java.util.stream.Collectors;
  * @createDate 2026-07-26 17:36:13
  */
 @Service
+@Slf4j
 public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         implements PictureService {
 
@@ -51,8 +56,9 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
     // 上传图片（本地图片或url图片）
     @Override
     public PictureVO uploadPicture(Object inputSource, PictureUploadRequest pictureUploadRequest, User loginUser) {
-        ThrowUtils.throwIf(loginUser==null,ErrorCode.NO_AUTH_ERROR,"未登录用户不可以上传图片");
 
+        // 1.校验参数
+        ThrowUtils.throwIf(loginUser==null,ErrorCode.NO_AUTH_ERROR,"未登录用户不可以上传图片");
         // 默认是新增图片，所以pictureId为空
         Long pictureId=null;
         // 若图片上传请求不为空，则是更新图片，需要为pictureId赋值
@@ -69,7 +75,7 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
             }
         }
 
-        // 上传图片
+        // 2.上传图片
         // 目前先上传到公共空间，路径前缀为public/用户id，这样可以区分不同用户上传的图片
         String uploadPathPrefix=String.format("public/%s",loginUser.getId());
         // 根据输入源的类型调用不同的Manager上传图片
@@ -79,9 +85,14 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         }
         PictureUploadResult pictureUploadResult = pictureManager.uploadPicture(inputSource, uploadPathPrefix);
 
-        // 操作数据库
+        // 3.操作数据库
+        // 构造要入库的图片信息
         Picture picture=new Picture();
         BeanUtils.copyProperties(pictureUploadResult,picture);
+        // 支持外部传递图片名称
+        if(pictureUploadRequest!=null && StrUtil.isNotBlank(pictureUploadRequest.getPicName())){
+            picture.setName(pictureUploadRequest.getPicName());
+        }
         picture.setUserId(loginUser.getId());
         // 填充审核参数
         fillReviewParams(picture,loginUser);
@@ -287,6 +298,70 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         } else{
             picture.setReviewStatus(PictureReviewStatusEnum.PENDING_REVIEW.getValue());
         }
+    }
+
+    // 批量抓取和上传url图片，返回成功上传的图片数
+    @Override
+    public int uploadUrlPictureByBatch(PictureUploadByBatchRequest pictureUploadByBatchRequest, User loginUser) {
+        // 1.校验参数
+        String searchText = pictureUploadByBatchRequest.getSearchText();
+        Integer count = pictureUploadByBatchRequest.getCount();
+        ThrowUtils.throwIf(count > 30, ErrorCode.PARAMS_ERROR, "每次最多抓取30张图片");
+
+        // 2.抓取内容
+        String fetchUrl = String.format("https://cn.bing.com/images/async?q=%s&mmasync=1", searchText);
+        Document document;
+        try {
+            document = Jsoup.connect(fetchUrl).get();
+        } catch (IOException e) {
+            log.error("jsoup获取页面失败", e);
+            throw new BusinessException(ErrorCode.OPERATION_ERROR, "jsoup获取页面失败");
+        }
+
+        // 3.解析内容
+        Element div = document.getElementsByClass("dgControl").first();
+        ThrowUtils.throwIf(ObjUtil.isEmpty(div), ErrorCode.OPERATION_ERROR, "jsoup获取元素失败");
+        Elements imgElements = div.select("img.mimg");
+        ThrowUtils.throwIf(CollUtil.isEmpty(imgElements), ErrorCode.OPERATION_ERROR, "jsoup获取元素失败");
+
+        // 4.遍历元素并上传图片
+        int uploadCount = 0;// 成功上传的图片数
+        for (int i = 0; i < imgElements.size(); i++) {
+            Element imgElement = imgElements.get(i);
+            String imgUrl = imgElement.attr("src");
+            if (StrUtil.isBlank(imgUrl)) {
+                log.warn("第{}张图片的url不存在，抓取失败，已跳过", i+1);
+                continue;
+            }
+            // 处理图片url，防止转义或者和COS冲突
+            // 比如这个url：https://tse4-mm.cn.bing.net/th/id/OIP-C.SJGV7f_dRfnt_tPF_JGmXgHaE8?w=300&h=200&c=7&r=0&o=7&pid=1.7&rm=3
+            // 问号后面的参数都是不必要的，可以通通删掉，变成https://tse4-mm.cn.bing.net/th/id/OIP-C.SJGV7f_dRfnt_tPF_JGmXgHaE8
+            int indexOfQuestionMark = imgUrl.indexOf('?');
+            if (indexOfQuestionMark > -1) {// 说明找到了问号
+                imgUrl = imgUrl.substring(0, indexOfQuestionMark);
+            }
+            // 上传图片
+            PictureUploadRequest pictureUploadRequest = new PictureUploadRequest();
+            pictureUploadRequest.setFileUrl(imgUrl);
+            String namePrefix = pictureUploadByBatchRequest.getNamePrefix();
+            if(StrUtil.isNotBlank(namePrefix)){
+                pictureUploadRequest.setPicName(namePrefix +(i+1));
+            }
+            try{
+                PictureVO pictureVO = this.uploadPicture(imgUrl, pictureUploadRequest, loginUser);
+                log.info("图片上传成功，图片id={}",pictureVO.getId());
+                uploadCount++;
+            } catch (Exception e) {
+                log.error("图片上传失败",e);
+                continue;// 跳过，继续抓取并上传下一张图片
+            }
+            // 若成功上传的图片数uploadCount已经超过需要抓取并上传的图片数count，则停止后续操作
+            if(uploadCount>=count){
+                break;
+            }
+        }
+
+        return uploadCount;
     }
 
 }
