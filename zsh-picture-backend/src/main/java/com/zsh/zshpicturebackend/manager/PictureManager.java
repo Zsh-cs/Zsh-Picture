@@ -1,5 +1,6 @@
 package com.zsh.zshpicturebackend.manager;
 
+import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.date.DateUtil;
 import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.io.unit.DataSizeUtil;
@@ -7,6 +8,8 @@ import cn.hutool.core.io.unit.DataUnit;
 import cn.hutool.core.util.NumberUtil;
 import cn.hutool.core.util.RandomUtil;
 import com.qcloud.cos.model.PutObjectResult;
+import com.qcloud.cos.model.ciModel.persistence.CIObject;
+import com.qcloud.cos.model.ciModel.persistence.CIUploadResult;
 import com.qcloud.cos.model.ciModel.persistence.ImageInfo;
 import com.zsh.zshpicturebackend.config.CosClientConfig;
 import com.zsh.zshpicturebackend.exception.BusinessException;
@@ -35,14 +38,16 @@ public abstract class PictureManager {
         // 1.校验输入源（本地图片或url图片），返回图片后缀
         String suffix = verify(inputSource);
 
-        // 2.生成图片上传地址
+        // 2.生成图片上传到COS后在桶中的路径
         String uuid= RandomUtil.randomString(16);
         String originalPictureName=getOriginalPictureName(inputSource);
         if(suffix.isEmpty()){
             suffix=FileUtil.getSuffix(originalPictureName);
         }
         String uploadPictureName=String.format("%s_%s.%s", DateUtil.formatDate(new Date()),uuid, suffix);
-        String uploadPath=String.format("/%s/%s",uploadPathPrefix,uploadPictureName);
+        String uploadPath=String.format("%s/%s",uploadPathPrefix,uploadPictureName);
+        // 原图url
+        String originalUrl=cosClientConfig.getHost()+"/"+uploadPath;
 
         File tempFile=null;
         try{
@@ -52,19 +57,42 @@ public abstract class PictureManager {
             transferToTempFile(inputSource,tempFile);
             // 5.将临时文件上传到COS
             PutObjectResult res = cosManager.putPictureObject(uploadPath, tempFile);
-            // 6.获取图片信息，封装到返回结果中
-            ImageInfo imageInfo = res.getCiUploadResult().getOriginalInfo().getImageInfo();
-            int width = imageInfo.getWidth();
-            int height = imageInfo.getHeight();
-            double scale= NumberUtil.round((double) width/height,2).doubleValue();
+
+            // 6.封装返回结果
             PictureUploadResult pictureUploadResult = new PictureUploadResult();
-            pictureUploadResult.setUrl(cosClientConfig.getHost() + uploadPath);
-            pictureUploadResult.setName(FileUtil.mainName(originalPictureName));
-            pictureUploadResult.setPicSize(FileUtil.size(tempFile));
-            pictureUploadResult.setPicWidth(width);
-            pictureUploadResult.setPicHeight(height);
-            pictureUploadResult.setPicScale(scale);
-            pictureUploadResult.setPicFormat(imageInfo.getFormat());
+            // 先统一设置好原图url
+            pictureUploadResult.setOriginalUrl(originalUrl);
+            // 获取数据万象CI处理图片后的结果
+            CIUploadResult ciUploadResult = res.getCiUploadResult();
+            List<CIObject> objectList = ciUploadResult.getProcessResults().getObjectList();
+            // 如果对象列表不为空，说明图片压缩成功，将压缩后的图片封装成返回结果
+            if (CollUtil.isNotEmpty(objectList)) {
+                CIObject compressedPicture = objectList.get(0);
+                int width = compressedPicture.getWidth();
+                int height = compressedPicture.getHeight();
+                double scale = NumberUtil.round((double) width / height, 2).doubleValue();
+                // getKey获取的是这张压缩图片在桶中的路径：public/用户id/xxx.webp
+                pictureUploadResult.setUrl(cosClientConfig.getHost()+"/"+compressedPicture.getKey());
+                pictureUploadResult.setName(FileUtil.mainName(originalPictureName));
+                pictureUploadResult.setPicSize(compressedPicture.getSize().longValue());
+                pictureUploadResult.setPicWidth(width);
+                pictureUploadResult.setPicHeight(height);
+                pictureUploadResult.setPicScale(scale);
+                pictureUploadResult.setPicFormat(compressedPicture.getFormat());
+            } else {
+                // 否则说明图片压缩失败，将原图封装成返回结果
+                ImageInfo imageInfo = ciUploadResult.getOriginalInfo().getImageInfo();
+                int width = imageInfo.getWidth();
+                int height = imageInfo.getHeight();
+                double scale = NumberUtil.round((double) width / height, 2).doubleValue();
+                pictureUploadResult.setUrl(originalUrl);
+                pictureUploadResult.setName(FileUtil.mainName(originalPictureName));
+                pictureUploadResult.setPicSize(FileUtil.size(tempFile));
+                pictureUploadResult.setPicWidth(width);
+                pictureUploadResult.setPicHeight(height);
+                pictureUploadResult.setPicScale(scale);
+                pictureUploadResult.setPicFormat(imageInfo.getFormat());
+            }
             return pictureUploadResult;
         } catch (Exception e) {
             log.error("图片上传到COS失败",e);

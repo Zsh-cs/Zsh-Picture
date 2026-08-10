@@ -36,6 +36,9 @@ public interface PictureService extends IService<Picture> {
     // 分页获取PictureVO对象
     Page<PictureVO> getPictureVOPage(Page<Picture> picturePage);
 
+    // 分页获取PictureVO对象（有缓存）
+    Page<PictureVO> getPictureVOPageWithCache(PictureQueryRequest pictureQueryRequest);
+
     // 校验图片
     void verifyPicture(Picture picture);
 

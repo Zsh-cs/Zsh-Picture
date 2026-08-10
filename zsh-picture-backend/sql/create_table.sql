@@ -59,3 +59,9 @@ ALTER TABLE picture
 -- 创建基于 reviewStatus 列的索引
 CREATE INDEX idx_reviewStatus ON picture (reviewStatus);
 
+-- 在图片表中url字段之后新增originalUrl字段，用于记录原图的url
+alter table picture add column originalUrl varchar(512) null comment '原图url' after url;
+update picture set originalUrl=url;
+alter table picture modify originalUrl varchar(512) not null;
+
+

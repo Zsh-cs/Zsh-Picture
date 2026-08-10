@@ -1,8 +1,12 @@
 package com.zsh.zshpicturebackend.controller;
 
+import cn.hutool.core.util.RandomUtil;
+import cn.hutool.core.util.StrUtil;
 import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import com.zsh.zshpicturebackend.annotation.AuthCheck;
 import com.zsh.zshpicturebackend.common.BaseResponse;
 import com.zsh.zshpicturebackend.common.DeleteRequest;
@@ -22,13 +26,18 @@ import com.zsh.zshpicturebackend.service.UserService;
 import io.swagger.models.auth.In;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.ValueOperations;
+import org.springframework.util.DigestUtils;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.servlet.http.HttpServletRequest;
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 @RestController
 @RequestMapping("/picture")
@@ -188,6 +197,19 @@ public class PictureController {
         QueryWrapper<Picture> qw = pictureService.getQueryMapper(pictureQueryRequest);
         Page<Picture> picturePage = pictureService.page(new Page<>(current, pageSize), qw);
         Page<PictureVO> pictureVOPage = pictureService.getPictureVOPage(picturePage);
+        return ResultUtils.success(pictureVOPage);
+    }
+
+    // 分页获取PictureVO列表（有缓存）
+    @PostMapping("/list/page/vo/cache")
+    public BaseResponse<Page<PictureVO>> listPictureVOByPageWithCache(@RequestBody PictureQueryRequest pictureQueryRequest) {
+        ThrowUtils.throwIf(pictureQueryRequest == null, ErrorCode.PARAMS_ERROR);
+        // 限制爬虫，防止恶意用户一页展示所有数据然后全部爬走
+        ThrowUtils.throwIf(pictureQueryRequest.getPageSize() > 20, ErrorCode.PARAMS_ERROR, "一页展示数据条数过多");
+        // 普通用户默认只能查看已过审的数据
+        pictureQueryRequest.setReviewStatus(PictureReviewStatusEnum.PASS.getValue());
+        // 分页获取PictureVO对象（有缓存）
+        Page<PictureVO> pictureVOPage = pictureService.getPictureVOPageWithCache(pictureQueryRequest);
         return ResultUtils.success(pictureVOPage);
     }
 
