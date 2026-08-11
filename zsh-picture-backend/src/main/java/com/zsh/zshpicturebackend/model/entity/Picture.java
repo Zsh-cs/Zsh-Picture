@@ -36,6 +36,11 @@ public class Picture implements Serializable {
     private String originalUrl;
 
     /**
+     * 缩略图url
+     */
+    private String thumbnailUrl;
+
+    /**
      * 图片名称
      */
     private String name;

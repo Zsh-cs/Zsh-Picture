@@ -25,17 +25,14 @@ public class CosManager {
      *
      * @param key  唯一键
      * @param file 文件
-     * @return
      */
     public PutObjectResult putObject(String key, File file) {
-        PutObjectRequest putObjectRequest = new PutObjectRequest(cosClientConfig.getBucket(), key, file);
-        return cosClient.putObject(putObjectRequest);
+        return cosClient.putObject(cosClientConfig.getBucket(), key, file);
     }
 
     // 下载对象
     public COSObject getObject(String key) {
-        GetObjectRequest getObjectRequest = new GetObjectRequest(cosClientConfig.getBucket(), key);
-        return cosClient.getObject(getObjectRequest);
+        return cosClient.getObject(cosClientConfig.getBucket(), key);
     }
 
     /**
@@ -43,17 +40,17 @@ public class CosManager {
      *
      * @param key  唯一键
      * @param file 文件
-     * @return
      */
     public PutObjectResult putPictureObject(String key, File file) {
         PutObjectRequest putObjectRequest = new PutObjectRequest(cosClientConfig.getBucket(), key, file);
 
-        // Caution 以下操作独立于把原图存入COS
+        //! 以下操作独立于把原图存入COS
         PicOperations picOperations = new PicOperations();
         // 1表示返回原图信息
         picOperations.setIsPicInfo(1);
-        // 图片压缩规则
+
         List<PicOperations.Rule> rules = new ArrayList<>();
+        // 1.压缩图规则
         PicOperations.Rule compressRule = new PicOperations.Rule();
         // FileId不以“/”开头为相对路径，压缩后的图片会保存在与原图相同的目录中
         compressRule.setFileId(FileUtil.mainName(key) + ".webp");
@@ -61,9 +58,20 @@ public class CosManager {
         compressRule.setRule("imageMogr2/format/webp/rquality/90");
         compressRule.setBucket(cosClientConfig.getBucket());
         rules.add(compressRule);
+        // 2.缩略图规则：原图>20KB才缩略，不然缩略图比压缩图还大
+        if(file.length()>20*1024){
+            PicOperations.Rule thumbnailRule=new PicOperations.Rule();
+            thumbnailRule.setFileId(FileUtil.mainName(key)+"_thumbnail."+FileUtil.getSuffix(key));
+            // /thumbnail/<Width>x<Height>>
+            // 限定缩略图的宽度和高度的最大值分别为 Width 和 Height，进行等比缩小，缩放比例取宽缩放比和高缩放比的较小值
+            // 如果目标宽（高）大于原图宽（高），则不处理
+            thumbnailRule.setRule(String.format("imageMogr2/thumbnail/%sx%s>",256,256));
+            thumbnailRule.setBucket(cosClientConfig.getBucket());
+            rules.add(thumbnailRule);
+        }
+
         picOperations.setRules(rules);
         putObjectRequest.setPicOperations(picOperations);
-
         return cosClient.putObject(putObjectRequest);
     }
 }

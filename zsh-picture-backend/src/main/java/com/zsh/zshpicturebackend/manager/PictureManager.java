@@ -65,14 +65,21 @@ public abstract class PictureManager {
             // 获取数据万象CI处理图片后的结果
             CIUploadResult ciUploadResult = res.getCiUploadResult();
             List<CIObject> objectList = ciUploadResult.getProcessResults().getObjectList();
-            // 如果对象列表不为空，说明图片压缩成功，将压缩后的图片封装成返回结果
+            // 如果对象列表不为空，说明图片压缩和缩略成功，将压缩后的图片及缩略图封装成返回结果
             if (CollUtil.isNotEmpty(objectList)) {
                 CIObject compressedPicture = objectList.get(0);
+                // 缩略图默认等于压缩图
+                CIObject thumbnail = compressedPicture;
+                // 有生成缩略图，才得到缩略图
+                if(objectList.size()>1){
+                    thumbnail=objectList.get(1);
+                }
                 int width = compressedPicture.getWidth();
                 int height = compressedPicture.getHeight();
                 double scale = NumberUtil.round((double) width / height, 2).doubleValue();
                 // getKey获取的是这张压缩图片在桶中的路径：public/用户id/xxx.webp
                 pictureUploadResult.setUrl(cosClientConfig.getHost()+"/"+compressedPicture.getKey());
+                pictureUploadResult.setThumbnailUrl(cosClientConfig.getHost()+"/"+thumbnail.getKey());
                 pictureUploadResult.setName(FileUtil.mainName(originalPictureName));
                 pictureUploadResult.setPicSize(compressedPicture.getSize().longValue());
                 pictureUploadResult.setPicWidth(width);

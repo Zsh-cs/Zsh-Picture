@@ -24,10 +24,12 @@ public class PictureVO implements Serializable {
      */
     private String url;
 
+    //! 不要提供原图url，防止个别用户F12获取到
+
     /**
-     * 原图url
+     * 缩略图url
      */
-    private String originalUrl;
+    private String thumbnailUrl;
 
     /**
      * 图片名称

@@ -64,4 +64,7 @@ alter table picture add column originalUrl varchar(512) null comment '原图url'
 update picture set originalUrl=url;
 alter table picture modify originalUrl varchar(512) not null;
 
+-- 在图片表中originalUrl字段之后新增thumbnailUrl，用于记录缩略图的url
+alter table picture add column thumbnailUrl varchar(512) null comment '缩略图url' after originalUrl;
+
 

@@ -183,25 +183,8 @@ public class PictureController {
         return ResultUtils.success(picturePage);
     }
 
-    // 分页获取PictureVO列表
-    @PostMapping("/list/page/vo")
-    public BaseResponse<Page<PictureVO>> listPictureVOByPage(@RequestBody PictureQueryRequest pictureQueryRequest) {
-        ThrowUtils.throwIf(pictureQueryRequest == null, ErrorCode.PARAMS_ERROR);
-        long current = pictureQueryRequest.getCurrent();
-        long pageSize = pictureQueryRequest.getPageSize();
-        // 限制爬虫，防止恶意用户一页展示所有数据然后全部爬走
-        ThrowUtils.throwIf(pageSize > 20, ErrorCode.PARAMS_ERROR, "一页展示数据条数过多");
-
-        // 普通用户默认只能查看已过审的数据
-        pictureQueryRequest.setReviewStatus(PictureReviewStatusEnum.PASS.getValue());
-        QueryWrapper<Picture> qw = pictureService.getQueryMapper(pictureQueryRequest);
-        Page<Picture> picturePage = pictureService.page(new Page<>(current, pageSize), qw);
-        Page<PictureVO> pictureVOPage = pictureService.getPictureVOPage(picturePage);
-        return ResultUtils.success(pictureVOPage);
-    }
-
     // 分页获取PictureVO列表（有缓存）
-    @PostMapping("/list/page/vo/cache")
+    @PostMapping("/list/page/vo")
     public BaseResponse<Page<PictureVO>> listPictureVOByPageWithCache(@RequestBody PictureQueryRequest pictureQueryRequest) {
         ThrowUtils.throwIf(pictureQueryRequest == null, ErrorCode.PARAMS_ERROR);
         // 限制爬虫，防止恶意用户一页展示所有数据然后全部爬走

@@ -63,11 +63,14 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
     @Autowired
     private StringRedisTemplate stringRedisTemplate;
 
+    // 基础的缓存过期时间（单位：秒）
+    public static final int BASIC_CACHE_EXPIRE_TIME = 30;
+
     // 本地缓存
     public static final Cache<String, String> LOCAL_CACHE = Caffeine.newBuilder()
             .initialCapacity(1024)
             .maximumSize(10000L)// 最多存储10000条数据
-            .expireAfterWrite(Duration.ofMinutes(5))// 缓存5分钟后过期
+            .expireAfterWrite(Duration.ofSeconds(BASIC_CACHE_EXPIRE_TIME))
             .build();
 
     // 上传图片（本地图片或url图片）
@@ -255,7 +258,7 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
     }
 
     // 分页获取PictureVO对象（有缓存）
-    // 多级缓存：本地Caffeine缓存->Redis缓存->数据库
+    //? 多级缓存：本地Caffeine缓存->Redis缓存->数据库
     @Override
     public Page<PictureVO> getPictureVOPageWithCache(PictureQueryRequest pictureQueryRequest) {
 
@@ -284,8 +287,8 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
                 pictureVOPage = this.getPictureVOPage(picturePage);
                 // 存入本地缓存
                 LOCAL_CACHE.put(key, JSONUtil.toJsonStr(pictureVOPage));
-                // 存入Redis缓存
-                int cacheExpireTime = 300 + RandomUtil.randomInt(0, 300);// 5-10分钟随机过期，防止缓存雪崩
+                // 存入Redis缓存，随机过期，防止缓存雪崩
+                int cacheExpireTime = BASIC_CACHE_EXPIRE_TIME + RandomUtil.randomInt(0, BASIC_CACHE_EXPIRE_TIME);
                 ops.set(key, JSONUtil.toJsonStr(pictureVOPage), cacheExpireTime, TimeUnit.SECONDS);
             }
         }
@@ -362,6 +365,11 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         String searchText = pictureUploadByBatchRequest.getSearchText();
         Integer count = pictureUploadByBatchRequest.getCount();
         ThrowUtils.throwIf(count > 30, ErrorCode.PARAMS_ERROR, "每次最多抓取30张图片");
+        String namePrefix = pictureUploadByBatchRequest.getNamePrefix();
+        // 如果用户传入的名称前缀为空，就默认等于搜索词
+        if(StrUtil.isBlank(namePrefix)){
+            namePrefix=searchText;
+        }
 
         // 2.抓取内容
         String fetchUrl = String.format("https://cn.bing.com/images/async?q=%s&mmasync=1", searchText);
@@ -398,10 +406,7 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
             // 上传图片
             PictureUploadRequest pictureUploadRequest = new PictureUploadRequest();
             pictureUploadRequest.setFileUrl(imgUrl);
-            String namePrefix = pictureUploadByBatchRequest.getNamePrefix();
-            if(StrUtil.isNotBlank(namePrefix)){
-                pictureUploadRequest.setPicName(namePrefix +(i+1));
-            }
+            pictureUploadRequest.setPicName(namePrefix +(i+1));
             try{
                 PictureVO pictureVO = this.uploadPicture(imgUrl, pictureUploadRequest, loginUser);
                 log.info("图片上传成功，图片id={}",pictureVO.getId());
