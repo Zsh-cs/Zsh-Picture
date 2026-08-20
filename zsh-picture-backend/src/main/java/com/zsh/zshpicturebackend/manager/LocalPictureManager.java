@@ -1,6 +1,7 @@
 package com.zsh.zshpicturebackend.manager;
 
 import cn.hutool.core.io.FileUtil;
+import com.zsh.zshpicturebackend.constant.SizeConstant;
 import com.zsh.zshpicturebackend.exception.BusinessException;
 import com.zsh.zshpicturebackend.exception.ErrorCode;
 import com.zsh.zshpicturebackend.exception.ThrowUtils;
@@ -21,7 +22,7 @@ public class LocalPictureManager extends PictureManager{
         MultipartFile localPicture=(MultipartFile) inputSource;
         ThrowUtils.throwIf(localPicture==null, ErrorCode.PARAMS_ERROR,"图片为空");
         // 图片大小不能超过2MB
-        if (localPicture.getSize() > 2 * 1024 * 1024) {
+        if (localPicture.getSize() > 2 * SizeConstant.ONE_MB) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "图片大小超过2MB");
         }
         // 图片后缀必须在允许的列表内

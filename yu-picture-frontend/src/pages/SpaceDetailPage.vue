@@ -4,8 +4,13 @@
     <a-flex justify="space-between">
       <h2>{{ space.spaceName }}（{{ SPACE_TYPE_MAP[space.spaceType] }}）</h2>
       <a-space size="middle">
-        <a-button
+        <!-- <a-button
           v-if="canUploadPicture"
+          type="primary"
+          :href="`/add_picture?spaceId=${id}`"
+          target="_blank"
+        > -->
+        <a-button
           type="primary"
           :href="`/add_picture?spaceId=${id}`"
           target="_blank"

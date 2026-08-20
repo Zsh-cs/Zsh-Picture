@@ -5,6 +5,7 @@ import com.qcloud.cos.COSClient;
 import com.qcloud.cos.model.*;
 import com.qcloud.cos.model.ciModel.persistence.PicOperations;
 import com.zsh.zshpicturebackend.config.CosClientConfig;
+import com.zsh.zshpicturebackend.constant.SizeConstant;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -35,6 +36,11 @@ public class CosManager {
         return cosClient.getObject(cosClientConfig.getBucket(), key);
     }
 
+    // 删除对象
+    public void deleteObject(String key){
+        cosClient.deleteObject(cosClientConfig.getBucket(), key);
+    }
+
     /**
      * 上传并解析图片
      *
@@ -59,7 +65,7 @@ public class CosManager {
         compressRule.setBucket(cosClientConfig.getBucket());
         rules.add(compressRule);
         // 2.缩略图规则：原图>20KB才缩略，不然缩略图比压缩图还大
-        if(file.length()>20*1024){
+        if(file.length()>20* SizeConstant.ONE_KB){
             PicOperations.Rule thumbnailRule=new PicOperations.Rule();
             thumbnailRule.setFileId(FileUtil.mainName(key)+"_thumbnail."+FileUtil.getSuffix(key));
             // /thumbnail/<Width>x<Height>>
@@ -73,5 +79,12 @@ public class CosManager {
         picOperations.setRules(rules);
         putObjectRequest.setPicOperations(picOperations);
         return cosClient.putObject(putObjectRequest);
+    }
+
+    // 根据url删除图片
+    public void deletePictureByUrl(String url){
+        String host = cosClientConfig.getHost()+"/";
+        String key = url.substring(host.length());
+        deleteObject(key);
     }
 }

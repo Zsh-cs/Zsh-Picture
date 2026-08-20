@@ -6,6 +6,7 @@ import cn.hutool.http.HttpResponse;
 import cn.hutool.http.HttpStatus;
 import cn.hutool.http.HttpUtil;
 import cn.hutool.http.Method;
+import com.zsh.zshpicturebackend.constant.SizeConstant;
 import com.zsh.zshpicturebackend.exception.BusinessException;
 import com.zsh.zshpicturebackend.exception.ErrorCode;
 import com.zsh.zshpicturebackend.exception.ThrowUtils;
@@ -36,6 +37,8 @@ public class UrlPictureManager extends PictureManager{
         if(!url.startsWith("http://") && !url.startsWith("https://")){
             throw new BusinessException(ErrorCode.PARAMS_ERROR,"url协议必须是http或https");
         }
+        // 校验url长度
+        ThrowUtils.throwIf(url.length()>1024,ErrorCode.PARAMS_ERROR,"url长度过长");
         // 发送HEAD请求，验证url图片是否存在
         try (HttpResponse response = HttpUtil.createRequest(Method.HEAD, url).execute()) {
             // 若没有正常响应，则放弃后续校验直接返回空字符串，而非抛出异常，这样做是为了提高上传url图片的成功率
@@ -56,7 +59,7 @@ public class UrlPictureManager extends PictureManager{
                 if(StrUtil.isNotBlank(contentLengthStr)){
                     try {
                         long contentLength = Long.parseLong(contentLengthStr);
-                        if(contentLength>2*1024*1024){
+                        if(contentLength>2* SizeConstant.ONE_MB){
                             throw new BusinessException(ErrorCode.PARAMS_ERROR,"图片大小超过2MB");
                         }
                     } catch (NumberFormatException e) {

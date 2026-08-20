@@ -162,11 +162,6 @@ const columns = [
     width: ID_COLUMN_WIDTH.SMALL,
   },
   {
-    title: '空间 id',
-    dataIndex: 'spaceId',
-    width: ID_COLUMN_WIDTH.SMALL,
-  },
-  {
     title: '审核信息',
     dataIndex: 'reviewMessage',
   },

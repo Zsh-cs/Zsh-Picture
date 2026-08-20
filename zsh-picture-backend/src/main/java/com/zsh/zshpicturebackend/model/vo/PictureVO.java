@@ -1,9 +1,6 @@
 package com.zsh.zshpicturebackend.model.vo;
 
-import cn.hutool.json.JSONUtil;
-import com.zsh.zshpicturebackend.model.entity.Picture;
 import lombok.Data;
-import org.springframework.beans.BeanUtils;
 
 import java.io.Serializable;
 import java.util.Date;
@@ -99,6 +96,11 @@ public class PictureVO implements Serializable {
     /**
      * 创建用户信息
      */
-    private UserVO userVO;
+    private UserVO user;
+
+    /**
+     * 空间id
+     */
+    private Long spaceId;
 
 }

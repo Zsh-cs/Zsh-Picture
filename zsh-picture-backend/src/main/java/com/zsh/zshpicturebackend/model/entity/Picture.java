@@ -106,12 +106,6 @@ public class Picture implements Serializable {
     private Date updateTime;
 
     /**
-     * 是否删除
-     */
-    @TableLogic
-    private Integer isDelete;
-
-    /**
      * 状态：0-待审核; 1-通过; 2-拒绝
      */
     private Integer reviewStatus;
@@ -130,5 +124,10 @@ public class Picture implements Serializable {
      * 审核时间
      */
     private Date reviewTime;
+
+    /**
+     * 空间id
+     */
+    private Long spaceId;
 
 }

@@ -45,7 +45,7 @@ create table if not exists picture
     INDEX idx_introduction (introduction), -- 用于模糊搜索图片简介
     INDEX idx_category (category),         -- 提升基于分类的查询性能
     INDEX idx_tags (tags),                 -- 提升基于标签的查询性能
-    INDEX idx_userId (userId)              -- 提升基于用户 ID 的查询性能
+    INDEX idx_userId (userId)              -- 提升基于用户id的查询性能
 ) comment '图片' collate = utf8mb4_unicode_ci;
 
 -- 在图片表中新增审核功能相关字段
@@ -67,4 +67,31 @@ alter table picture modify originalUrl varchar(512) not null;
 -- 在图片表中originalUrl字段之后新增thumbnailUrl，用于记录缩略图的url
 alter table picture add column thumbnailUrl varchar(512) null comment '缩略图url' after originalUrl;
 
+-- 空间表
+create table if not exists space
+(
+    id         bigint auto_increment comment 'id' primary key,
+    spaceName  varchar(128)                       null comment '空间名称',
+    spaceLevel int      default 0                 null comment '空间级别：0-普通版 1-专业版 2-旗舰版',
+    maxSize    bigint   default 0                 null comment '空间图片的最大总大小',
+    maxCount   bigint   default 0                 null comment '空间图片的最大数量',
+    totalSize  bigint   default 0                 null comment '当前空间下图片的总大小',
+    totalCount bigint   default 0                 null comment '当前空间下的图片数量',
+    userId     bigint                             not null comment '创建用户的id',
+    createTime datetime default CURRENT_TIMESTAMP not null comment '创建时间',
+    editTime   datetime default CURRENT_TIMESTAMP not null comment '编辑时间',
+    updateTime datetime default CURRENT_TIMESTAMP not null on update CURRENT_TIMESTAMP comment '更新时间',
+    isDelete   tinyint  default 0                 not null comment '是否删除',
+    -- 索引设计
+    index idx_userId (userId),        -- 提升基于用户的查询效率
+    index idx_spaceName (spaceName),  -- 提升基于空间名称的查询效率
+    index idx_spaceLevel (spaceLevel) -- 提升按空间级别查询的效率
+) comment '空间' collate = utf8mb4_unicode_ci;
+
+-- 给图片表新增字段spaceId，实现图片与空间的关联，同时添加索引
+alter table picture add column spaceId bigint null comment '空间id（为空表示公共空间）';
+create index idx_spaceId on picture (spaceId);
+
+-- 经过研究认为本项目中图片不适用逻辑删除，故删除图片表的isDelete字段
+alter table picture drop isDelete;
 

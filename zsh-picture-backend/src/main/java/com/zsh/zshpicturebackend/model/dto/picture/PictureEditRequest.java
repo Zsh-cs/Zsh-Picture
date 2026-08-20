@@ -6,7 +6,7 @@ import java.io.Serializable;
 import java.util.List;
 
 /**
- * 图片编辑请求，一般情况下给普通用户؜使用؜，可؜修改字段的范围小于更新请求
+ * 图片编辑请求，一般情况下给普通用户使用，可修改字段的范围小于更新请求
  */
 @Data
 public class PictureEditRequest implements Serializable {

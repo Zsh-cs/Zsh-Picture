@@ -12,7 +12,8 @@ public enum ErrorCode {
     FORBIDDEN_ERROR(40300, "禁止访问"),
     NOT_FOUND_ERROR(40400, "请求数据不存在"),
     SYSTEM_ERROR(50000, "系统内部异常"),
-    OPERATION_ERROR(50001, "操作失败");
+    OPERATION_ERROR(50001, "操作失败"),
+    QUOTA_EXCEEDED(50002,"超出配额");
 
     /**
      * 状态码

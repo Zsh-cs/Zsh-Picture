@@ -4,7 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.zsh.zshpicturebackend.annotation.AuthCheck;
 import com.zsh.zshpicturebackend.common.BaseResponse;
-import com.zsh.zshpicturebackend.common.DeleteRequest;
+import com.zsh.zshpicturebackend.model.dto.DeleteRequest;
 import com.zsh.zshpicturebackend.common.ResultUtils;
 import com.zsh.zshpicturebackend.constant.UserConstant;
 import com.zsh.zshpicturebackend.exception.BusinessException;

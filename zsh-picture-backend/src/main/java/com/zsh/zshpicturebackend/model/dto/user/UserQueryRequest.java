@@ -1,6 +1,6 @@
 package com.zsh.zshpicturebackend.model.dto.user;
 
-import com.zsh.zshpicturebackend.common.PageRequest;
+import com.zsh.zshpicturebackend.model.dto.PageRequest;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
