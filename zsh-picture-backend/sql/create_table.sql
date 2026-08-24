@@ -95,3 +95,6 @@ create index idx_spaceId on picture (spaceId);
 -- 经过研究认为本项目中图片不适用逻辑删除，故删除图片表的isDelete字段
 alter table picture drop isDelete;
 
+-- 在图片表中picFormat之后新增字段picColor，用于记录图片主色调
+alter table picture add column picColor varchar(16) null comment '图片主色调' after picFormat;
+

@@ -65,6 +65,7 @@ public abstract class PictureManager {
             // 获取数据万象CI处理图片后的结果
             CIUploadResult ciUploadResult = res.getCiUploadResult();
             List<CIObject> objectList = ciUploadResult.getProcessResults().getObjectList();
+            ImageInfo imageInfo = ciUploadResult.getOriginalInfo().getImageInfo();
             // 如果对象列表不为空，说明图片压缩和缩略成功，将压缩后的图片及缩略图封装成返回结果
             if (CollUtil.isNotEmpty(objectList)) {
                 CIObject compressedPicture = objectList.get(0);
@@ -86,9 +87,9 @@ public abstract class PictureManager {
                 pictureUploadResult.setPicHeight(height);
                 pictureUploadResult.setPicScale(scale);
                 pictureUploadResult.setPicFormat(compressedPicture.getFormat());
+                pictureUploadResult.setPicColor(imageInfo.getAve());
             } else {
                 // 否则说明图片压缩失败，将原图封装成返回结果
-                ImageInfo imageInfo = ciUploadResult.getOriginalInfo().getImageInfo();
                 int width = imageInfo.getWidth();
                 int height = imageInfo.getHeight();
                 double scale = NumberUtil.round((double) width / height, 2).doubleValue();
@@ -99,11 +100,12 @@ public abstract class PictureManager {
                 pictureUploadResult.setPicHeight(height);
                 pictureUploadResult.setPicScale(scale);
                 pictureUploadResult.setPicFormat(imageInfo.getFormat());
+                pictureUploadResult.setPicColor(imageInfo.getAve());
             }
             return pictureUploadResult;
         } catch (Exception e) {
             log.error("图片上传到COS失败",e);
-            throw new BusinessException(ErrorCode.SYSTEM_ERROR,"图片上传到COS失败");
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR,"图片上传到COS失败",e);
         } finally {
             // 7.删除临时文件
             deleteTempFile(tempFile);

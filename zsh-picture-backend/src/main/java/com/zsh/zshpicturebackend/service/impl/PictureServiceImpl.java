@@ -6,6 +6,7 @@ import cn.hutool.core.util.RandomUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.github.benmanes.caffeine.cache.Cache;
@@ -29,6 +30,7 @@ import com.zsh.zshpicturebackend.service.PictureService;
 import com.zsh.zshpicturebackend.mapper.PictureMapper;
 import com.zsh.zshpicturebackend.service.SpaceService;
 import com.zsh.zshpicturebackend.service.UserService;
+import com.zsh.zshpicturebackend.util.ColorUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -41,12 +43,15 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.util.DigestUtils;
 
+import java.awt.*;
 import java.io.IOException;
 import java.time.Duration;
 import java.util.*;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -91,7 +96,7 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
     public PictureVO uploadPicture(Object inputSource, PictureUploadRequest pictureUploadRequest, User loginUser) {
 
         // 1.校验参数
-        ThrowUtils.throwIf(loginUser == null, ErrorCode.NO_AUTH_ERROR, "未登录用户不可以上传图片");
+        ThrowUtils.throwIf(loginUser == null, ErrorCode.NOT_LOGIN_ERROR, "未登录用户不可以上传图片");
         Long pictureId = pictureUploadRequest.getId();
         Long spaceId = pictureUploadRequest.getSpaceId();
 
@@ -582,6 +587,81 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         // 操作数据库
         boolean res = this.updateById(newPicture);
         ThrowUtils.throwIf(!res, ErrorCode.OPERATION_ERROR);
+    }
+
+    // 根据颜色搜索图片
+    @Override
+    public List<PictureVO> searchPictureByColor(Long spaceId, String picColor, User loginUser) {
+        // 1.校验参数
+        ThrowUtils.throwIf(spaceId == null || StrUtil.isBlank(picColor), ErrorCode.PARAMS_ERROR);
+        ThrowUtils.throwIf(loginUser == null, ErrorCode.NOT_LOGIN_ERROR, "请先登录");
+        // 2.校验空间权限
+        Space space = spaceService.getById(spaceId);
+        ThrowUtils.throwIf(space == null, ErrorCode.NOT_FOUND_ERROR);
+        if (!loginUser.getId().equals(space.getUserId())) {
+            throw new BusinessException(ErrorCode.NO_AUTH_ERROR, "您没有权限访问该空间");
+        }
+        // 3.查询该空间下所有图片（必须有主色调）
+        List<Picture> pictureList = this.lambdaQuery()
+                .eq(Picture::getSpaceId, spaceId)
+                .isNotNull(Picture::getPicColor).list();
+        // 如果没有图片，直接返回空列表
+        if (CollUtil.isEmpty(pictureList)) {
+            return Collections.emptyList();
+        }
+        // 4.计算颜色相似度并排序
+        // 先将目标颜色转换为Color对象，避免循环中每次遍历都要转换一遍，提高性能
+        Color targetColor = Color.decode(picColor);
+        List<Picture> sortedPictureList = pictureList.stream().sorted((p1, p2) -> {
+            double s1 = ColorUtil.calculateSimilarity(Color.decode(p1.getPicColor()), targetColor);
+            double s2 = ColorUtil.calculateSimilarity(Color.decode(p2.getPicColor()), targetColor);
+            return Double.compare(s2, s1);// 按颜色相似度从高到低排序（即逆序）
+        }).limit(12).collect(Collectors.toList());
+        // 5.将排序后的图片列表转换为PictureVO列表（不用带上用户信息）
+        return sortedPictureList.stream().map(this::obj2incompleteVO).collect(Collectors.toList());
+    }
+
+    // 批量编辑图片
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void editPictureByBatch(PictureEditByBatchRequest pictureEditByBatchRequest, User loginUser) {
+        List<Long> pictureIdList = pictureEditByBatchRequest.getPictureIdList();
+        Long spaceId = pictureEditByBatchRequest.getSpaceId();
+        String category = pictureEditByBatchRequest.getCategory();
+        List<String> tags = pictureEditByBatchRequest.getTags();
+        // 命名规则：图片名称{序号}
+        String nameRule = pictureEditByBatchRequest.getNameRule();
+
+        // 1.校验参数
+        ThrowUtils.throwIf(CollUtil.isEmpty(pictureIdList) || spaceId==null,ErrorCode.PARAMS_ERROR);
+        ThrowUtils.throwIf(loginUser==null,ErrorCode.NOT_LOGIN_ERROR);
+        // 2.校验空间权限
+        Space space = spaceService.getById(spaceId);
+        ThrowUtils.throwIf(space==null,ErrorCode.NOT_FOUND_ERROR,"空间不存在");
+        if(!loginUser.getId().equals(space.getUserId())){
+            throw new BusinessException(ErrorCode.NO_AUTH_ERROR,"您没有该空间的访问权限");
+        }
+        // 3.构造要入库的图片列表，填充图片名称、分类、标签
+        int count=1;
+        List<Picture> pictureList=new ArrayList<>();
+        for (Long id : pictureIdList) {
+            Picture picture=new Picture();
+            picture.setId(id);
+            if(StrUtil.isNotBlank(category)){
+                picture.setCategory(category);
+            }
+            if(CollUtil.isNotEmpty(tags)){
+                picture.setTags(JSONUtil.toJsonStr(tags));
+            }
+            if(StrUtil.isNotBlank(nameRule)) {
+                String name = nameRule.replace("{序号}", String.valueOf(count++));
+                picture.setName(name);
+            }
+            pictureList.add(picture);
+        }
+        // 4.批量更新数据库
+        boolean res = this.updateBatchById(pictureList);
+        ThrowUtils.throwIf(!res,ErrorCode.OPERATION_ERROR,"批量更新数据库失败");
     }
 
 }

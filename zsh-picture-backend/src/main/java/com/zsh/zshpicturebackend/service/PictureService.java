@@ -2,14 +2,13 @@ package com.zsh.zshpicturebackend.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.zsh.zshpicturebackend.model.dto.picture.PictureQueryRequest;
-import com.zsh.zshpicturebackend.model.dto.picture.PictureReviewRequest;
-import com.zsh.zshpicturebackend.model.dto.picture.PictureUploadByBatchRequest;
-import com.zsh.zshpicturebackend.model.dto.picture.PictureUploadRequest;
+import com.zsh.zshpicturebackend.model.dto.picture.*;
 import com.zsh.zshpicturebackend.model.entity.Picture;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.zsh.zshpicturebackend.model.entity.User;
 import com.zsh.zshpicturebackend.model.vo.PictureVO;
+
+import java.util.List;
 
 /**
  * @author asus
@@ -65,5 +64,11 @@ public interface PictureService extends IService<Picture> {
 
     // 编辑图片
     void editPicture(Picture newPicture, User loginUser);
+
+    // 根据颜色搜索图片
+    List<PictureVO> searchPictureByColor(Long spaceId, String picColor, User loginUser);
+
+    // 批量编辑图片
+    void editPictureByBatch(PictureEditByBatchRequest pictureEditByBatchRequest, User loginUser);
 
 }

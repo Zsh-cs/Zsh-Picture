@@ -58,7 +58,7 @@ public class FileController {
             return ResultUtils.success(filepath);
         } catch (Exception e) {
             log.error("file upload error, filepath={}", filepath, e);
-            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "文件上传失败");
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "文件上传失败",e);
         } finally {
             if (tempFile != null && tempFile.exists()) {
                 boolean delete = tempFile.delete();
@@ -87,7 +87,7 @@ public class FileController {
             responseOutputStream.flush();
         } catch (Exception e) {
             log.error("file download error, filepath={}", filepath, e);
-            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "文件下载失败");
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "文件下载失败",e);
         } finally {
             if (cosObjectInputStream != null) {
                 cosObjectInputStream.close();

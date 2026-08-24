@@ -5,7 +5,6 @@ import lombok.Getter;
 @Getter
 public enum ErrorCode {
 
-    SUCCESS(0, "ok"),
     PARAMS_ERROR(40000, "请求参数错误"),
     NOT_LOGIN_ERROR(40100, "未登录"),
     NO_AUTH_ERROR(40101, "无权限"),
@@ -13,7 +12,8 @@ public enum ErrorCode {
     NOT_FOUND_ERROR(40400, "请求数据不存在"),
     SYSTEM_ERROR(50000, "系统内部异常"),
     OPERATION_ERROR(50001, "操作失败"),
-    QUOTA_EXCEEDED(50002,"超出配额");
+    QUOTA_EXCEEDED(50002,"超出配额"),
+    API_ERROR(50003,"接口相关错误");
 
     /**
      * 状态码
