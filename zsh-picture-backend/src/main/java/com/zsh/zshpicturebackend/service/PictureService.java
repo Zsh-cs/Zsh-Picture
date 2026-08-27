@@ -2,6 +2,7 @@ package com.zsh.zshpicturebackend.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.zsh.zshpicturebackend.api.ai_outpainting.CreateOutPaintingTaskResponse;
 import com.zsh.zshpicturebackend.model.dto.picture.*;
 import com.zsh.zshpicturebackend.model.entity.Picture;
 import com.baomidou.mybatisplus.extension.service.IService;
@@ -70,5 +71,8 @@ public interface PictureService extends IService<Picture> {
 
     // 批量编辑图片
     void editPictureByBatch(PictureEditByBatchRequest pictureEditByBatchRequest, User loginUser);
+
+    // 创建扩图任务
+    CreateOutPaintingTaskResponse createOutPaintingTask(AIOutPaintingRequest aiOutPaintingRequest, User loginUser);
 
 }

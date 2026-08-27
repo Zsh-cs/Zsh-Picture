@@ -197,6 +197,7 @@ declare namespace API {
 
   type GetOutPaintingTaskResponse = {
     output?: Output1
+    usage?: Usage
     requestId?: string
   }
 
@@ -647,6 +648,10 @@ declare namespace API {
     id?: number
     picName?: string
     spaceId?: number
+  }
+
+  type Usage = {
+    imageCount?: number
   }
 
   type User = {

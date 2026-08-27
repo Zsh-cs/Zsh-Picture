@@ -38,7 +38,11 @@
           空间分析
         </a-button>
         <!-- <a-button v-if="canEditPicture" :icon="h(EditOutlined)" @click="doBatchEdit"> 批量编辑</a-button> -->
-         <a-button :icon="h(EditOutlined)" @click="doBatchEdit"> 批量编辑</a-button>
+        <a-button :icon="h(EditOutlined)" @click="doBatchEdit"> 批量编辑</a-button>
+        <a-radio-group v-model:value="viewMode" button-style="solid">
+          <a-radio-button value="card">卡片</a-radio-button>
+          <a-radio-button value="table">表格</a-radio-button>
+        </a-radio-group>
         <a-tooltip
           :title="`占用空间 ${formatSize(space.totalSize)} / ${formatSize(space.maxSize)}`"
         >
@@ -66,6 +70,9 @@
       :canEdit="canEditPicture"
       :canDelete="canDeletePicture"
       :onReload="fetchData"
+      :viewMode="viewMode"
+      :selectedRowKeys="selectedPictureIds"
+      @selection-change="onSelectionChange"
     />
     <!-- 分页 -->
     <a-pagination
@@ -78,7 +85,7 @@
     <BatchEditPictureModal
       ref="batchEditPictureModalRef"
       :spaceId="id"
-      :pictureList="dataList"
+      :pictureList="picturesToEdit"
       :onSuccess="onBatchEditPictureSuccess"
     />
   </div>
@@ -147,6 +154,22 @@ onMounted(() => {
 const dataList = ref<API.PictureVO[]>([])
 const total = ref(0)
 const loading = ref(true)
+const viewMode = ref<'card' | 'table'>('table')
+type PictureKey = string | number
+
+const selectedPictureIds = ref<PictureKey[]>([])
+const selectedPictureMap = new Map<PictureKey, API.PictureVO>()
+
+const selectedPictures = computed(() =>
+  selectedPictureIds.value
+    .map((id) => selectedPictureMap.get(id))
+    .filter((picture): picture is API.PictureVO => Boolean(picture)),
+)
+
+// 表格使用用户勾选的图片，卡片模式保留原有的当前页批量编辑行为
+const picturesToEdit = computed(() =>
+  viewMode.value === 'table' ? selectedPictures.value : dataList.value,
+)
 
 // 搜索条件
 const searchParams = ref<API.PictureQueryRequest>({
@@ -168,10 +191,32 @@ const fetchData = async () => {
   if (res.data.code === 0 && res.data.data) {
     dataList.value = res.data.data.records ?? []
     total.value = res.data.data.total ?? 0
+    dataList.value.forEach((picture) => {
+      if (picture.id) {
+        selectedPictureMap.set(picture.id, picture)
+      }
+    })
   } else {
     message.error('获取数据失败，' + res.data.message)
   }
   loading.value = false
+}
+
+const onSelectionChange = (selectedRowKeys: (string | number)[], selectedRows: API.PictureVO[]) => {
+  // Keep the original key type. Picture IDs from the backend can be strings.
+  const selectedIdSet = new Set<PictureKey>(selectedRowKeys)
+
+  selectedRows.forEach((picture) => {
+    if (picture.id) {
+      selectedPictureMap.set(picture.id, picture)
+    }
+  })
+  dataList.value.forEach((picture) => {
+    if (picture.id && !selectedIdSet.has(picture.id)) {
+      selectedPictureMap.delete(picture.id)
+    }
+  })
+  selectedPictureIds.value = [...selectedIdSet]
 }
 
 // 页面加载时获取数据，请求一次
@@ -221,11 +266,17 @@ const batchEditPictureModalRef = ref()
 
 // 批量编辑图片成功
 const onBatchEditPictureSuccess = () => {
+  selectedPictureIds.value = []
+  selectedPictureMap.clear()
   fetchData()
 }
 
 // 打开批量编辑图片弹窗
 const doBatchEdit = () => {
+  if (!picturesToEdit.value.length) {
+    message.warning('请先选择要编辑的图片')
+    return
+  }
   if (batchEditPictureModalRef.value) {
     batchEditPictureModalRef.value.openModal()
   }
@@ -235,6 +286,8 @@ const doBatchEdit = () => {
 watch(
   () => props.id,
   (newSpaceId) => {
+    selectedPictureIds.value = []
+    selectedPictureMap.clear()
     fetchSpaceDetail()
     fetchData()
   },

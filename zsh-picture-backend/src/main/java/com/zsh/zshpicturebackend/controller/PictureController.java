@@ -1,9 +1,12 @@
 package com.zsh.zshpicturebackend.controller;
 
+import cn.hutool.core.util.StrUtil;
 import cn.hutool.json.JSONUtil;
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.zsh.zshpicturebackend.annotation.AuthCheck;
+import com.zsh.zshpicturebackend.api.ai_outpainting.AIOutPaintingApi;
+import com.zsh.zshpicturebackend.api.ai_outpainting.CreateOutPaintingTaskResponse;
+import com.zsh.zshpicturebackend.api.ai_outpainting.QueryOutPaintingTaskResponse;
 import com.zsh.zshpicturebackend.api.imagesearch.ImageSearchResult;
 import com.zsh.zshpicturebackend.api.imagesearch.SearchImageApiFacade;
 import com.zsh.zshpicturebackend.common.BaseResponse;
@@ -46,6 +49,8 @@ public class PictureController {
     private UserService userService;
     @Autowired
     private SpaceService spaceService;
+    @Autowired
+    private AIOutPaintingApi aiOutPaintingApi;
 
     // 上传本地图片（可以重新上传：基础信息不变，只改变图片文件）
     @PostMapping("/upload")
@@ -257,6 +262,25 @@ public class PictureController {
         User loginUser = userService.getLoginUser(request);
         pictureService.editPictureByBatch(pictureEditByBatchRequest,loginUser);
         return ResultUtils.success(true);
+    }
+
+    // 创建扩图任务
+    @PostMapping("/out_painting/create_task")
+    public BaseResponse<CreateOutPaintingTaskResponse> createOutPaintingTask(@RequestBody AIOutPaintingRequest aiOutPaintingRequest,
+                                                                             HttpServletRequest request){
+        ThrowUtils.throwIf(aiOutPaintingRequest==null,ErrorCode.PARAMS_ERROR);
+        User loginUser = userService.getLoginUser(request);
+        CreateOutPaintingTaskResponse response = pictureService.createOutPaintingTask(aiOutPaintingRequest, loginUser);
+        return ResultUtils.success(response);
+    }
+
+    // 根据任务id查询扩图任务
+    //! 仅给前端开发者调用
+    @GetMapping("/out_painting/get_task")
+    public BaseResponse<QueryOutPaintingTaskResponse> queryOutPaintingTaskByTaskId(String taskId){
+        ThrowUtils.throwIf(StrUtil.isBlank(taskId),ErrorCode.PARAMS_ERROR);
+        QueryOutPaintingTaskResponse response = aiOutPaintingApi.queryOutPaintingTaskByTaskId(taskId);
+        return ResultUtils.success(response);
     }
 
 }

@@ -11,6 +11,9 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
+import com.zsh.zshpicturebackend.api.ai_outpainting.AIOutPaintingApi;
+import com.zsh.zshpicturebackend.api.ai_outpainting.CreateOutPaintingTaskRequest;
+import com.zsh.zshpicturebackend.api.ai_outpainting.CreateOutPaintingTaskResponse;
 import com.zsh.zshpicturebackend.constant.SizeConstant;
 import com.zsh.zshpicturebackend.exception.BusinessException;
 import com.zsh.zshpicturebackend.exception.ErrorCode;
@@ -79,6 +82,8 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
     private CosManager cosManager;
     @Autowired
     private TransactionTemplate transactionTemplate;
+    @Autowired
+    private AIOutPaintingApi aiOutPaintingApi;
 
     // 基础的缓存过期时间（单位：秒）
     public static final int BASIC_CACHE_EXPIRE_TIME = 30;
@@ -122,7 +127,7 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
             oldPicture = this.getById(pictureId);
             ThrowUtils.throwIf(oldPicture == null, ErrorCode.NOT_FOUND_ERROR);
             // 图片存在，则只能允许本人或管理员更新
-            if (!oldPicture.getUserId().equals(loginUser.getId()) || !userService.isAdmin(loginUser)) {
+            if (!oldPicture.getUserId().equals(loginUser.getId()) && !userService.isAdmin(loginUser)) {
                 throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
             }
             // 校验空间id是否一致
@@ -479,9 +484,9 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
             // 处理图片url，防止转义或者和COS冲突
             // 比如这个url：https://tse4-mm.cn.bing.net/th/id/OIP-C.SJGV7f_dRfnt_tPF_JGmXgHaE8?w=300&h=200&c=7&r=0&o=7&pid=1.7&rm=3
             // 问号后面的参数都是不必要的，可以通通删掉，变成https://tse4-mm.cn.bing.net/th/id/OIP-C.SJGV7f_dRfnt_tPF_JGmXgHaE8
-            int indexOfQuestionMark = imgUrl.indexOf('?');
-            if (indexOfQuestionMark > -1) {// 说明找到了问号
-                imgUrl = imgUrl.substring(0, indexOfQuestionMark);
+            int questionMarkIndex = imgUrl.indexOf('?');
+            if (questionMarkIndex > -1) {// 说明找到了问号
+                imgUrl = imgUrl.substring(0, questionMarkIndex);
             }
             // 上传图片
             PictureUploadRequest pictureUploadRequest = new PictureUploadRequest();
@@ -662,6 +667,34 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         // 4.批量更新数据库
         boolean res = this.updateBatchById(pictureList);
         ThrowUtils.throwIf(!res,ErrorCode.OPERATION_ERROR,"批量更新数据库失败");
+    }
+
+    // 创建扩图任务
+    @Override
+    public CreateOutPaintingTaskResponse createOutPaintingTask(AIOutPaintingRequest aiOutPaintingRequest, User loginUser) {
+        // 1.校验参数
+        Long pictureId = aiOutPaintingRequest.getPictureId();
+        CreateOutPaintingTaskRequest.Parameters parameters = aiOutPaintingRequest.getParameters();
+        ThrowUtils.throwIf(pictureId == null || pictureId <= 0 || parameters == null, ErrorCode.PARAMS_ERROR);
+        ThrowUtils.throwIf(loginUser == null, ErrorCode.NOT_LOGIN_ERROR);
+        // 2.获取对应图片并校验
+        Picture picture = this.getById(pictureId);
+        ThrowUtils.throwIf(picture == null, ErrorCode.NOT_FOUND_ERROR, "图片不存在");
+        this.checkPictureAuth(picture, loginUser);
+        Integer picWidth = picture.getPicWidth();
+        Integer picHeight = picture.getPicHeight();
+        ThrowUtils.throwIf(picWidth<512,ErrorCode.PARAMS_ERROR,"要进行AI扩图的图片宽度不合适，小于512");
+        ThrowUtils.throwIf(picWidth>4096,ErrorCode.PARAMS_ERROR,"要进行AI扩图的图片宽度不合适，大于4096");
+        ThrowUtils.throwIf(picHeight<512,ErrorCode.PARAMS_ERROR,"要进行AI扩图的图片高度不合适，小于512");
+        ThrowUtils.throwIf(picHeight>4096,ErrorCode.PARAMS_ERROR,"要进行AI扩图的图片高度不合适，大于4096");
+        // 4.构造创建扩图任务的请求
+        CreateOutPaintingTaskRequest request = new CreateOutPaintingTaskRequest();
+        request.setParameters(parameters);
+        CreateOutPaintingTaskRequest.Input input = new CreateOutPaintingTaskRequest.Input();
+        input.setImageUrl(picture.getUrl());
+        request.setInput(input);
+        // 5.调用编写好的AI扩图API，返回结果
+        return aiOutPaintingApi.createOutPaintingTask(request);
     }
 
 }

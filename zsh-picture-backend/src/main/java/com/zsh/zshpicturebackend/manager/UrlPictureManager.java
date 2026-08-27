@@ -74,7 +74,13 @@ public class UrlPictureManager extends PictureManager{
 
     @Override
     protected String getOriginalPictureName(Object inputSource) {
-        return (String) inputSource;
+        String url=(String) inputSource;
+        // 处理图片url，防止转义或者和COS冲突，同时降低获取不到扩展名的风险
+        int questionMarkIndex=url.indexOf('?');
+        if(questionMarkIndex>-1){// 说明找到了问号
+            url=url.substring(0,questionMarkIndex);
+        }
+        return url;
     }
 
     @Override
