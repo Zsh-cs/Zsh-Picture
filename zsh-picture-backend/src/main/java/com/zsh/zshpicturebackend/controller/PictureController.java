@@ -2,11 +2,14 @@ package com.zsh.zshpicturebackend.controller;
 
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.json.JSONUtil;
+import com.alibaba.dashscope.aigc.imagegeneration.ImageGenerationResult;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.zsh.zshpicturebackend.annotation.AuthCheck;
 import com.zsh.zshpicturebackend.api.ai_outpainting.AIOutPaintingApi;
 import com.zsh.zshpicturebackend.api.ai_outpainting.CreateOutPaintingTaskResponse;
 import com.zsh.zshpicturebackend.api.ai_outpainting.QueryOutPaintingTaskResponse;
+import com.zsh.zshpicturebackend.api.ai_text2image.AIText2ImageApi;
+import com.zsh.zshpicturebackend.api.ai_text2image.QueryText2ImageTaskResponse;
 import com.zsh.zshpicturebackend.api.imagesearch.ImageSearchResult;
 import com.zsh.zshpicturebackend.api.imagesearch.SearchImageApiFacade;
 import com.zsh.zshpicturebackend.common.BaseResponse;
@@ -51,6 +54,8 @@ public class PictureController {
     private SpaceService spaceService;
     @Autowired
     private AIOutPaintingApi aiOutPaintingApi;
+    @Autowired
+    private AIText2ImageApi aiText2ImageApi;
 
     // 上传本地图片（可以重新上传：基础信息不变，只改变图片文件）
     @PostMapping("/upload")
@@ -276,10 +281,33 @@ public class PictureController {
 
     // 根据任务id查询扩图任务
     //! 仅给前端开发者调用
-    @GetMapping("/out_painting/get_task")
+    @GetMapping("/out_painting/query_task")
     public BaseResponse<QueryOutPaintingTaskResponse> queryOutPaintingTaskByTaskId(String taskId){
         ThrowUtils.throwIf(StrUtil.isBlank(taskId),ErrorCode.PARAMS_ERROR);
         QueryOutPaintingTaskResponse response = aiOutPaintingApi.queryOutPaintingTaskByTaskId(taskId);
+        return ResultUtils.success(response);
+    }
+
+    // 创建文生图任务
+    @PostMapping("/text2image/create_task")
+    public BaseResponse<ImageGenerationResult> createText2ImageTask(@RequestBody AIText2ImageRequest aiText2ImageRequest,
+                                                                    HttpServletRequest request){
+        ThrowUtils.throwIf(aiText2ImageRequest==null,ErrorCode.PARAMS_ERROR);
+        User loginUser=userService.getLoginUser(request);
+        ThrowUtils.throwIf(loginUser == null, ErrorCode.NOT_LOGIN_ERROR);
+
+        String text = aiText2ImageRequest.getText();
+        AIText2ImageRequest.Parameters parameters = aiText2ImageRequest.getParameters();
+        ThrowUtils.throwIf(StrUtil.isBlank(text) || parameters==null,ErrorCode.PARAMS_ERROR);
+        ImageGenerationResult result = aiText2ImageApi.createText2ImageTask(aiText2ImageRequest);
+        return ResultUtils.success(result);
+    }
+
+    // 查询文生图任务
+    @GetMapping("/text2image/query_task")
+    public BaseResponse<QueryText2ImageTaskResponse> queryText2ImageTaskByTaskId(String taskId){
+        ThrowUtils.throwIf(StrUtil.isBlank(taskId),ErrorCode.PARAMS_ERROR);
+        QueryText2ImageTaskResponse response = aiText2ImageApi.queryText2ImageTaskByTaskId(taskId);
         return ResultUtils.success(response);
     }
 

@@ -34,10 +34,17 @@ const loading = ref<boolean>(false)
  * 上传图片
  * @param file
  */
-const handleUpload = async () => {
+const uploadByUrl = async (url?: string): Promise<boolean> => {
+  const targetUrl = url?.trim()
+  if (!targetUrl) {
+    message.warning('请输入图片地址')
+    return false
+  }
+
+  fileUrl.value = targetUrl
   loading.value = true
   try {
-    const params: API.PictureUploadRequest = { fileUrl: fileUrl.value }
+    const params: API.PictureUploadRequest = { fileUrl: targetUrl }
     params.spaceId = props.spaceId;
     if (props.picture) {
       params.id = props.picture.id
@@ -47,15 +54,22 @@ const handleUpload = async () => {
       message.success('图片上传成功')
       // 将上传成功的图片信息传递给父组件
       props.onSuccess?.(res.data.data)
+      return true
     } else {
       message.error('图片上传失败，' + res.data.message)
     }
   } catch (error) {
     console.error('图片上传失败', error)
     message.error('图片上传失败，' + error.message)
+  } finally {
+    loading.value = false
   }
-  loading.value = false
+  return false
 }
+
+const handleUpload = async () => uploadByUrl(fileUrl.value)
+
+defineExpose({ uploadByUrl })
 </script>
 <style scoped>
 .url-picture-upload {

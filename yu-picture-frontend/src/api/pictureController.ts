@@ -147,7 +147,7 @@ export async function getPictureOutPaintingTaskUsingGet(
   options?: { [key: string]: any }
 ) {
   return request<API.BaseResponseGetOutPaintingTaskResponse_>(
-    '/api/picture/out_painting/get_task',
+    '/api/picture/out_painting/query_task',
     {
       method: 'GET',
       params: {
@@ -156,6 +156,35 @@ export async function getPictureOutPaintingTaskUsingGet(
       ...(options || {}),
     }
   )
+}
+
+/** createText2ImageTask POST /api/picture/text2image/create_task */
+export async function createText2ImageTaskUsingPost(
+  body: API.AIText2ImageRequest,
+  options?: { [key: string]: any }
+) {
+  return request<API.BaseResponseImageGenerationResult_>('/api/picture/text2image/create_task', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    data: body,
+    ...(options || {}),
+  })
+}
+
+/** queryText2ImageTask GET /api/picture/text2image/query_task */
+export async function queryText2ImageTaskUsingGet(
+  params: API.queryText2ImageTaskUsingGETParams,
+  options?: { [key: string]: any }
+) {
+  return request<API.BaseResponseText2ImageTaskResponse_>('/api/picture/text2image/query_task', {
+    method: 'GET',
+    params: {
+      ...params,
+    },
+    ...(options || {}),
+  })
 }
 
 /** doPictureReview POST /api/picture/review */

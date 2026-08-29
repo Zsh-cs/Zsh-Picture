@@ -10,15 +10,33 @@
     <a-tabs v-model:activeKey="uploadType">
       <a-tab-pane key="file" tab="文件上传">
         <!-- 图片上传组件 -->
-        <PictureUpload :picture="picture" :spaceId="spaceId" :onSuccess="onSuccess" />
+        <PictureUpload
+          :picture="pictureUploadType === 'file' ? picture : undefined"
+          :spaceId="spaceId"
+          :onSuccess="(newPicture) => onSuccess(newPicture, 'file')"
+        />
       </a-tab-pane>
       <a-tab-pane key="url" tab="URL 上传" force-render>
         <!-- URL 图片上传组件 -->
-        <UrlPictureUpload :picture="picture" :spaceId="spaceId" :onSuccess="onSuccess" />
+        <UrlPictureUpload
+          ref="urlPictureUploadRef"
+          :picture="pictureUploadType === 'url' ? picture : undefined"
+          :spaceId="spaceId"
+          :onSuccess="(newPicture) => onSuccess(newPicture, 'url')"
+        />
+      </a-tab-pane>
+      <a-tab-pane key="ai" tab="AI 文生图">
+        <AIText2Image
+          v-if="!isAiResultPage"
+          :onApplyResult="applyAiResultByUrl"
+        />
       </a-tab-pane>
     </a-tabs>
+    <div v-if="isAiResultPage && picture && pictureUploadType === uploadType" class="ai-result-preview">
+      <img :src="picture.url" :alt="picture.name || 'AI生成图片'" />
+    </div>
     <!-- 图片编辑 -->
-    <div v-if="picture" class="edit-bar">
+    <div v-if="picture && pictureUploadType === uploadType" class="edit-bar">
       <a-space size="middle">
         <a-button :icon="h(EditOutlined)" @click="doEditPicture">编辑图片</a-button>
         <a-button type="primary" :icon="h(FullscreenOutlined)" @click="doImagePainting">
@@ -42,7 +60,7 @@
     </div>
     <!-- 图片信息表单 -->
     <a-form
-      v-if="picture"
+      v-if="picture && pictureUploadType === uploadType"
       name="pictureForm"
       layout="vertical"
       :model="pictureForm"
@@ -85,7 +103,7 @@
 
 <script setup lang="ts">
 import PictureUpload from '@/components/PictureUpload.vue'
-import { computed, h, onMounted, reactive, ref, watchEffect } from 'vue'
+import { computed, h, onMounted, reactive, ref, watch, watchEffect } from 'vue'
 import { message } from 'ant-design-vue'
 import {
   editPictureUsingPost,
@@ -94,6 +112,7 @@ import {
 } from '@/api/pictureController.ts'
 import { useRoute, useRouter } from 'vue-router'
 import UrlPictureUpload from '@/components/UrlPictureUpload.vue'
+import AIText2Image from '@/components/AIText2Image.vue'
 import ImageCropper from '@/components/ImageCropper.vue'
 import { EditOutlined, FullscreenOutlined } from '@ant-design/icons-vue'
 import ImageOutPainting from '@/components/ImageOutPainting.vue'
@@ -104,7 +123,11 @@ const route = useRoute()
 
 const picture = ref<API.PictureVO>()
 const pictureForm = reactive<API.PictureEditRequest>({})
-const uploadType = ref<'file' | 'url'>('file')
+type UploadType = 'file' | 'url' | 'ai'
+const uploadType = ref<UploadType>('file')
+const pictureUploadType = ref<UploadType>()
+const urlPictureUploadRef = ref<{ uploadByUrl: (url: string) => Promise<boolean> }>()
+const isAiResultPage = computed(() => route.query?.resultOnly === 'true')
 // 空间 id
 const spaceId = computed(() => {
   return route.query?.spaceId
@@ -114,9 +137,45 @@ const spaceId = computed(() => {
  * 图片上传成功
  * @param newPicture
  */
-const onSuccess = (newPicture: API.PictureVO) => {
+const onSuccess = (newPicture: API.PictureVO, source: UploadType) => {
   picture.value = newPicture
+  pictureUploadType.value = source
   pictureForm.name = newPicture.name
+}
+
+const applyAiResultByUrl = async (url: string): Promise<boolean> => {
+  if (!urlPictureUploadRef.value) {
+    message.error('URL 图片上传组件未初始化')
+    return false
+  }
+  const uploaded = await urlPictureUploadRef.value.uploadByUrl(url)
+  if (!uploaded || !picture.value?.id) {
+    return false
+  }
+  const resultPage = router.resolve({
+    path: '/add_picture/ai',
+    query: {
+      ...route.query,
+      id: picture.value.id.toString(),
+      uploadType: 'ai',
+      resultOnly: 'true',
+    },
+  })
+  const resultWindow = window.open(resultPage.href, '_blank')
+  if (!resultWindow) {
+    message.error('浏览器拦截了新标签页，请允许弹出窗口后重试')
+    return false
+  }
+
+  const initialAiPage = router.resolve({
+    path: '/add_picture/ai',
+    query: {
+      spaceId: route.query.spaceId,
+      uploadType: 'ai',
+    },
+  })
+  window.location.assign(initialAiPage.href)
+  return true
 }
 
 /**
@@ -179,6 +238,15 @@ onMounted(() => {
 
 // 获取老数据
 const getOldPicture = async () => {
+  const routeUploadType = route.query?.uploadType
+  let source: UploadType = 'file'
+  if (routeUploadType === 'url' || routeUploadType === 'ai') {
+    source = routeUploadType
+  } else if (route.path === '/add_picture/ai') {
+    source = 'ai'
+  }
+  uploadType.value = source
+
   // 获取到 id
   const id = route.query?.id
   if (id) {
@@ -188,6 +256,7 @@ const getOldPicture = async () => {
     if (res.data.code === 0 && res.data.data) {
       const data = res.data.data
       picture.value = data
+      pictureUploadType.value = source
       pictureForm.name = data.name
       pictureForm.introduction = data.introduction
       pictureForm.category = data.category
@@ -196,9 +265,13 @@ const getOldPicture = async () => {
   }
 }
 
-onMounted(() => {
-  getOldPicture()
-})
+watch(
+  () => route.fullPath,
+  () => {
+    void getOldPicture()
+  },
+  { immediate: true },
+)
 
 // ----- 图片编辑器引用 ------
 const imageCropperRef = ref()
@@ -256,5 +329,15 @@ watchEffect(() => {
 #addPicturePage .edit-bar {
   text-align: center;
   margin: 16px 0;
+}
+
+#addPicturePage .ai-result-preview {
+  margin: 16px 0;
+  text-align: center;
+}
+
+#addPicturePage .ai-result-preview img {
+  max-width: 100%;
+  max-height: 480px;
 }
 </style>

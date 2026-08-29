@@ -74,6 +74,13 @@
             <groupId>org.springframework.session</groupId>
             <artifactId>spring-session-data-redis</artifactId>
         </dependency>
+        <!-- 阿里云百炼 DashScope Java SDK -->
+        <dependency>
+            <groupId>com.alibaba</groupId>
+            <artifactId>dashscope-sdk-java</artifactId>
+            <version>2.22.30</version>
+            <scope>compile</scope>
+        </dependency>
 
         <dependency>
             <groupId>com.mysql</groupId>

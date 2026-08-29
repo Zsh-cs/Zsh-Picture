@@ -10,7 +10,6 @@ import com.zsh.zshpicturebackend.exception.ErrorCode;
 import com.zsh.zshpicturebackend.exception.ThrowUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 /**
@@ -25,7 +24,7 @@ public class AIOutPaintingApi {
 
     public static final String CREATE_OUT_PAINTING_TASK_PATH = "/api/v1/services/aigc/image2image/out-painting";
     // %s填的是taskId
-    public static final String GET_OUT_PAINTING_TASK_PATH = "/api/v1/tasks/%s";
+    public static final String QUERY_OUT_PAINTING_TASK_PATH = "/api/v1/tasks/%s";
 
     // 创建扩图任务
     public CreateOutPaintingTaskResponse createOutPaintingTask(CreateOutPaintingTaskRequest request) {
@@ -56,7 +55,7 @@ public class AIOutPaintingApi {
     public QueryOutPaintingTaskResponse queryOutPaintingTaskByTaskId(String taskId) {
         ThrowUtils.throwIf(StrUtil.isBlank(taskId), ErrorCode.PARAMS_ERROR, "任务id不能为空");
         // 1.构造请求url和请求头，发送请求
-        String url = aliyunBailianConfig.getHost() + String.format(GET_OUT_PAINTING_TASK_PATH, taskId);
+        String url = aliyunBailianConfig.getHost() + String.format(QUERY_OUT_PAINTING_TASK_PATH, taskId);
         HttpRequest httpRequest = HttpRequest.get(url)
                 .header("Authorization", "Bearer " + aliyunBailianConfig.getApiKey());
         // 2.解析响应

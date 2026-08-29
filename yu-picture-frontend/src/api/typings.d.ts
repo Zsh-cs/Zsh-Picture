@@ -17,6 +17,18 @@ declare namespace API {
     message?: string
   }
 
+  type BaseResponseImageGenerationResult_ = {
+    code?: number
+    data?: ImageGenerationResult
+    message?: string
+  }
+
+  type BaseResponseText2ImageTaskResponse_ = {
+    code?: number
+    data?: Text2ImageTaskResponse
+    message?: string
+  }
+
   type BaseResponseInt_ = {
     code?: number
     data?: number
@@ -211,6 +223,11 @@ declare namespace API {
     taskId?: string
   }
 
+  type queryText2ImageTaskUsingGETParams = {
+    /** taskId */
+    taskId?: string
+  }
+
   type getPictureVOByIdUsingGETParams = {
     /** id */
     id?: number
@@ -234,6 +251,65 @@ declare namespace API {
   type getUserVOByIdUsingGETParams = {
     /** id */
     id?: number
+  }
+
+  type AIText2ImageRequest = {
+    parameters?: AIText2ImageParameters
+    text?: string
+  }
+
+  type AIText2ImageParameters = {
+    negativePrompt?: string
+    n?: number
+    promptExtend?: boolean
+    size?: string
+    watermark?: boolean
+  }
+
+  type ImageGenerationResult = {
+    code?: string
+    message?: string
+    output?: ImageGenerationOutput
+    requestId?: string
+    usage?: ImageGenerationUsage
+  }
+
+  type ImageGenerationOutput = {
+    choices?: ImageGenerationChoice[]
+    finished?: boolean
+    taskId?: string
+    taskStatus?: string
+    task_id?: string
+    task_status?: string
+  }
+
+  type ImageGenerationChoice = {
+    finishReason?: string
+    message?: ImageGenerationMessage
+  }
+
+  type ImageGenerationMessage = {
+    role?: string
+    content?: ImageGenerationContent[]
+  }
+
+  type ImageGenerationContent = {
+    image?: string
+    type?: string
+  }
+
+  type ImageGenerationUsage = {
+    imageCount?: number
+    size?: string
+    inputTokens?: number
+    outputTokens?: number
+    totalTokens?: number
+  }
+
+  type Text2ImageTaskResponse = {
+    output?: ImageGenerationOutput
+    requestId?: string
+    usage?: ImageGenerationUsage
   }
 
   type ImageSearchResult = {

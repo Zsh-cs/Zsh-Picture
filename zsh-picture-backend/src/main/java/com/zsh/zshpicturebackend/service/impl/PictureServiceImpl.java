@@ -5,8 +5,8 @@ import cn.hutool.core.util.ObjUtil;
 import cn.hutool.core.util.RandomUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.json.JSONUtil;
+import com.alibaba.dashscope.aigc.imagegeneration.ImageGenerationResult;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.github.benmanes.caffeine.cache.Cache;
@@ -14,6 +14,7 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import com.zsh.zshpicturebackend.api.ai_outpainting.AIOutPaintingApi;
 import com.zsh.zshpicturebackend.api.ai_outpainting.CreateOutPaintingTaskRequest;
 import com.zsh.zshpicturebackend.api.ai_outpainting.CreateOutPaintingTaskResponse;
+import com.zsh.zshpicturebackend.api.ai_text2image.AIText2ImageApi;
 import com.zsh.zshpicturebackend.constant.SizeConstant;
 import com.zsh.zshpicturebackend.exception.BusinessException;
 import com.zsh.zshpicturebackend.exception.ErrorCode;
@@ -687,13 +688,13 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         ThrowUtils.throwIf(picWidth>4096,ErrorCode.PARAMS_ERROR,"要进行AI扩图的图片宽度不合适，大于4096");
         ThrowUtils.throwIf(picHeight<512,ErrorCode.PARAMS_ERROR,"要进行AI扩图的图片高度不合适，小于512");
         ThrowUtils.throwIf(picHeight>4096,ErrorCode.PARAMS_ERROR,"要进行AI扩图的图片高度不合适，大于4096");
-        // 4.构造创建扩图任务的请求
+        // 3.构造创建扩图任务的请求
         CreateOutPaintingTaskRequest request = new CreateOutPaintingTaskRequest();
         request.setParameters(parameters);
         CreateOutPaintingTaskRequest.Input input = new CreateOutPaintingTaskRequest.Input();
         input.setImageUrl(picture.getUrl());
         request.setInput(input);
-        // 5.调用编写好的AI扩图API，返回结果
+        // 4.调用编写好的AI扩图API，返回结果
         return aiOutPaintingApi.createOutPaintingTask(request);
     }
 

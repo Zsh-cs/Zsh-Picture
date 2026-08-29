@@ -62,6 +62,11 @@ const router = createRouter({
       component: AddPicturePage,
     },
     {
+      path: '/add_picture/ai',
+      name: 'AI 文生图创建图片',
+      component: AddPicturePage,
+    },
+    {
       path: '/add_picture/batch',
       name: '批量创建图片',
       component: AddPictureBatchPage,
