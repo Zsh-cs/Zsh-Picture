@@ -1,4 +1,4 @@
-package com.zsh.zshpicturebackend.model.vo;
+package com.zsh.zshpicturebackend.model.vo.space;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

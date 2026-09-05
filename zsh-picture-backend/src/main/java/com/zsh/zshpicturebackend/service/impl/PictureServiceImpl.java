@@ -168,7 +168,7 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
             newPicture.setName(pictureUploadRequest.getPicName());
         }
         // 填充审核参数
-        this.fillReviewParams(newPicture, loginUser);
+        fillReviewParams(newPicture, loginUser);
         // 如果是更新图片，需要补充图片id和编辑时间
         if (pictureId != null) {
             newPicture.setId(pictureId);
@@ -309,7 +309,7 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
     public Page<Picture> getPicturePage(PictureQueryRequest pictureQueryRequest) {
         long current = pictureQueryRequest.getCurrent();
         long pageSize = pictureQueryRequest.getPageSize();
-        QueryWrapper<Picture> qw = this.getQueryWrapper(pictureQueryRequest);
+        QueryWrapper<Picture> qw = getQueryWrapper(pictureQueryRequest);
         return this.page(new Page<>(current, pageSize), qw);
     }
 
@@ -372,9 +372,9 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
                 LOCAL_CACHE.put(key, JSONUtil.toJsonStr(pictureVOPage));
             } else {
                 // 4.Redis缓存不命中，则查数据库，然后把查到的数据存入本地缓存和Redis缓存
-                QueryWrapper<Picture> qw = this.getQueryWrapper(pictureQueryRequest);
+                QueryWrapper<Picture> qw = getQueryWrapper(pictureQueryRequest);
                 Page<Picture> picturePage = this.page(new Page<>(current, pageSize), qw);
-                pictureVOPage = this.getPictureVOPage(picturePage);
+                pictureVOPage = getPictureVOPage(picturePage);
                 // 存入本地缓存
                 LOCAL_CACHE.put(key, JSONUtil.toJsonStr(pictureVOPage));
                 // 存入Redis缓存，随机过期，防止缓存雪崩
@@ -494,7 +494,7 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
             pictureUploadRequest.setFileUrl(imgUrl);
             pictureUploadRequest.setPicName(namePrefix + (i + 1));
             try {
-                PictureVO pictureVO = this.uploadPicture(imgUrl, pictureUploadRequest, loginUser);
+                PictureVO pictureVO = uploadPicture(imgUrl, pictureUploadRequest, loginUser);
                 log.info("图片上传成功，图片id={}", pictureVO.getId());
                 uploadCount++;
             } catch (Exception e) {
@@ -536,7 +536,7 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         // 判断图片是否存在
         ThrowUtils.throwIf(picture == null, ErrorCode.NOT_FOUND_ERROR);
         // 校验图片所在空间的图片权限
-        this.checkPictureAuth(picture, loginUser);
+        checkPictureAuth(picture, loginUser);
         // 开启事务
         transactionTemplate.execute(status -> {
             // 删除数据库中的记录
@@ -582,14 +582,14 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
     @Override
     public void editPicture(Picture newPicture, User loginUser) {
         // 校验图片
-        this.verifyPicture(newPicture);
+        verifyPicture(newPicture);
         // 判断id对应图片是否存在
         Picture oldPicture = this.getById(newPicture.getId());
         ThrowUtils.throwIf(oldPicture == null, ErrorCode.NOT_FOUND_ERROR);
         // 校验图片所在空间的图片权限
-        this.checkPictureAuth(oldPicture, loginUser);
+        checkPictureAuth(oldPicture, loginUser);
         // 填充审核参数
-        this.fillReviewParams(newPicture, loginUser);
+        fillReviewParams(newPicture, loginUser);
         // 操作数据库
         boolean res = this.updateById(newPicture);
         ThrowUtils.throwIf(!res, ErrorCode.OPERATION_ERROR);
@@ -681,7 +681,7 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         // 2.获取对应图片并校验
         Picture picture = this.getById(pictureId);
         ThrowUtils.throwIf(picture == null, ErrorCode.NOT_FOUND_ERROR, "图片不存在");
-        this.checkPictureAuth(picture, loginUser);
+        checkPictureAuth(picture, loginUser);
         Integer picWidth = picture.getPicWidth();
         Integer picHeight = picture.getPicHeight();
         ThrowUtils.throwIf(picWidth<512,ErrorCode.PARAMS_ERROR,"要进行AI扩图的图片宽度不合适，小于512");

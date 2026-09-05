@@ -1,7 +1,6 @@
-package com.zsh.zshpicturebackend.model.vo;
+package com.zsh.zshpicturebackend.model.vo.space;
 
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableId;
+import com.zsh.zshpicturebackend.model.vo.UserVO;
 import lombok.Data;
 
 import java.io.Serializable;

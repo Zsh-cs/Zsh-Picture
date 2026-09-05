@@ -7,7 +7,7 @@ import com.zsh.zshpicturebackend.model.dto.space.SpaceQueryRequest;
 import com.zsh.zshpicturebackend.model.entity.Space;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.zsh.zshpicturebackend.model.entity.User;
-import com.zsh.zshpicturebackend.model.vo.SpaceVO;
+import com.zsh.zshpicturebackend.model.vo.space.SpaceVO;
 
 /**
  * @author asus
@@ -39,4 +39,7 @@ public interface SpaceService extends IService<Space> {
 
     // 创建空间
     long addSpace(SpaceAddRequest spaceAddRequest, User loginUser);
+
+    // 校验空间权限
+    void checkSpaceAuth(Space space, User loginUser);
 }

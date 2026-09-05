@@ -77,7 +77,7 @@ public abstract class PictureManager {
                 }
                 int width = compressedPicture.getWidth();
                 int height = compressedPicture.getHeight();
-                double scale = NumberUtil.round((double) width / height, 2).doubleValue();
+                double scale = NumberUtil.round( width*1.0 / height, 2).doubleValue();
                 // getKey获取的是这张压缩图片在桶中的路径：public/用户id/xxx.webp
                 pictureUploadResult.setUrl(cosClientConfig.getHost()+"/"+compressedPicture.getKey());
                 pictureUploadResult.setThumbnailUrl(cosClientConfig.getHost()+"/"+thumbnail.getKey());
@@ -92,7 +92,7 @@ public abstract class PictureManager {
                 // 否则说明图片压缩失败，将原图封装成返回结果
                 int width = imageInfo.getWidth();
                 int height = imageInfo.getHeight();
-                double scale = NumberUtil.round((double) width / height, 2).doubleValue();
+                double scale = NumberUtil.round( width*1.0 / height, 2).doubleValue();
                 pictureUploadResult.setUrl(originalUrl);
                 pictureUploadResult.setName(FileUtil.mainName(originalPictureName));
                 pictureUploadResult.setPicSize(FileUtil.size(tempFile));

@@ -1,6 +1,6 @@
 <template>
   <div class="space-user-analyze">
-    <a-card title="空间图片用户分析">
+    <a-card title="空间用户上传行为分析">
       <v-chart :option="options" style="height: 320px; max-width: 100%" :loading="loading" />
       <template #extra>
         <a-space>

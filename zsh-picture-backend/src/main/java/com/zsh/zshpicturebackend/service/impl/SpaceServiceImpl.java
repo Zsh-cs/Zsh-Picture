@@ -13,7 +13,7 @@ import com.zsh.zshpicturebackend.model.dto.space.SpaceQueryRequest;
 import com.zsh.zshpicturebackend.model.entity.Space;
 import com.zsh.zshpicturebackend.model.entity.User;
 import com.zsh.zshpicturebackend.model.enums.SpaceLevelEnum;
-import com.zsh.zshpicturebackend.model.vo.SpaceVO;
+import com.zsh.zshpicturebackend.model.vo.space.SpaceVO;
 import com.zsh.zshpicturebackend.model.vo.UserVO;
 import com.zsh.zshpicturebackend.service.SpaceService;
 import com.zsh.zshpicturebackend.mapper.SpaceMapper;
@@ -69,7 +69,7 @@ public class SpaceServiceImpl extends ServiceImpl<SpaceMapper, Space>
     // Space转SpaceVO
     @Override
     public SpaceVO obj2vo(Space space) {
-        SpaceVO spaceVO = this.obj2incompleteVO(space);
+        SpaceVO spaceVO = obj2incompleteVO(space);
         Long userId = space.getUserId();
         if (userId != null && userId > 0) {
             User user = userService.getById(userId);
@@ -168,10 +168,10 @@ public class SpaceServiceImpl extends ServiceImpl<SpaceMapper, Space>
         }
         Space space = new Space();
         BeanUtils.copyProperties(spaceAddRequest, space);
-        this.fillSpaceBySpaceLevel(space);
+        fillSpaceBySpaceLevel(space);
 
         // 2.校验空间
-        this.verifySpace(space);
+        verifySpace(space);
 
         // 3.校验权限，非管理员只能创建普通版空间
         Long userId = loginUser.getId();
@@ -201,6 +201,15 @@ public class SpaceServiceImpl extends ServiceImpl<SpaceMapper, Space>
                 // 防止内存泄漏
                 lockMap.remove(userId);
             }
+        }
+    }
+
+    // 校验空间权限
+    @Override
+    public void checkSpaceAuth(Space space, User loginUser) {
+        // 只有空间创建人或管理员可以操作空间
+        if (!space.getUserId().equals(loginUser.getId()) && !userService.isAdmin(loginUser)) {
+            throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
         }
     }
 }

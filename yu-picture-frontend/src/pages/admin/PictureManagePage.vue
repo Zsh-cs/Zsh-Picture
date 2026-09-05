@@ -134,6 +134,7 @@ const columns = [
   {
     title: '图片',
     dataIndex: 'url',
+    width: 150
   },
   {
     title: '名称',

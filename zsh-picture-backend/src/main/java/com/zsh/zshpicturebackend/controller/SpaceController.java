@@ -17,8 +17,8 @@ import com.zsh.zshpicturebackend.model.dto.space.SpaceUpdateRequest;
 import com.zsh.zshpicturebackend.model.entity.Space;
 import com.zsh.zshpicturebackend.model.entity.User;
 import com.zsh.zshpicturebackend.model.enums.SpaceLevelEnum;
-import com.zsh.zshpicturebackend.model.vo.SpaceLevel;
-import com.zsh.zshpicturebackend.model.vo.SpaceVO;
+import com.zsh.zshpicturebackend.model.vo.space.SpaceLevel;
+import com.zsh.zshpicturebackend.model.vo.space.SpaceVO;
 import com.zsh.zshpicturebackend.service.SpaceService;
 import com.zsh.zshpicturebackend.service.UserService;
 import org.springframework.beans.BeanUtils;
@@ -53,10 +53,8 @@ public class SpaceController {
         Space space = spaceService.getById(id);
         // 判断空间是否存在
         ThrowUtils.throwIf(space == null, ErrorCode.NOT_FOUND_ERROR);
-        // 只有本人或管理员可以删除空间
-        if (!space.getUserId().equals(loginUser.getId()) && !userService.isAdmin(loginUser)) {
-            throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
-        }
+        // 只有空间创建人或管理员可以删除空间
+        spaceService.checkSpaceAuth(space, loginUser);
 
         boolean res = spaceService.removeById(id);
         ThrowUtils.throwIf(!res, ErrorCode.OPERATION_ERROR);
@@ -104,12 +102,9 @@ public class SpaceController {
         ThrowUtils.throwIf(oldSpace == null, ErrorCode.NOT_FOUND_ERROR);
         // 只有空间创建人或管理员可以编辑空间
         User loginUser = userService.getLoginUser(request);
-        boolean isSpaceCreator = oldSpace.getUserId().equals(loginUser.getId());
-        if (!isSpaceCreator && !userService.isAdmin(loginUser)) {
-            throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
-        }
+        spaceService.checkSpaceAuth(oldSpace, loginUser);
         // 空间创建人不能编辑空间级别
-        if (isSpaceCreator && !oldSpace.getSpaceLevel().equals(newSpace.getSpaceLevel())) {
+        if (oldSpace.getUserId().equals(loginUser.getId()) && !oldSpace.getSpaceLevel().equals(newSpace.getSpaceLevel())) {
             throw new BusinessException(ErrorCode.NO_AUTH_ERROR, "空间创建人不能编辑空间级别");
         }
         // 根据空间级别自动填充限额数据
